@@ -1,6 +1,7 @@
 //! Substrate Node Template CLI library.
 #![warn(missing_docs)]
 
+mod awarizon_rpc;
 mod benchmarking;
 mod chain_spec;
 mod cli;

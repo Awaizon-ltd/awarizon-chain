@@ -21,8 +21,13 @@ use frame_support::build_struct_json_patch;
 use serde_json::Value;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
+use sp_core::hashing::blake2_256;
 use sp_genesis_builder::{self, PresetId};
 use sp_keyring::Sr25519Keyring;
+
+fn awarizon_account(seed: &[u8]) -> AccountId {
+	blake2_256(seed).into()
+}
 
 // Returns the genesis config presets populated with given parameters.
 fn testnet_genesis(
@@ -30,14 +35,21 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	root: AccountId,
 ) -> Value {
+	let riz: u128 = 1_000_000_000_000; // 1 RIZ in planck (12 decimals)
+	let mut balances: Vec<(AccountId, u128)> = endowed_accounts
+		.iter()
+		.cloned()
+		.map(|k| (k, 1u128 << 60))
+		.collect();
+	balances.extend(vec![
+		(awarizon_account(b"engagement_pool"),   300_000_000u128 * riz),
+		(awarizon_account(b"validator_rewards"), 250_000_000u128 * riz),
+		(awarizon_account(b"developer_fund"),    200_000_000u128 * riz),
+		(awarizon_account(b"foundation_reserve"),150_000_000u128 * riz),
+		(awarizon_account(b"community_sale"),    100_000_000u128 * riz),
+	]);
 	build_struct_json_patch!(RuntimeGenesisConfig {
-		balances: BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, 1u128 << 60))
-				.collect::<Vec<_>>(),
-		},
+		balances: BalancesConfig { balances },
 		aura: pallet_aura::GenesisConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>(),
 		},

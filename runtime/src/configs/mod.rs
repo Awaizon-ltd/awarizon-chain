@@ -40,9 +40,10 @@ use sp_version::RuntimeVersion;
 
 // Local module imports
 use super::{
-	AccountId, Aura, Balance, Balances, Block, BlockNumber, Hash, Nonce, PalletInfo, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-	System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
+	AccountId, Aura, Balance, Balances, Block, BlockNumber, Hash, Nonce, PalletInfo,
+	RandomnessFromParentHash, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
+	RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Signature, System, Timestamp,
+	UncheckedExtrinsic, EXISTENTIAL_DEPOSIT, MICRO_UNIT, SLOT_DURATION, UNIT, VERSION,
 };
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
@@ -161,4 +162,169 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const VerificationStakeThreshold: u128 = 10_000u128 * 1_000_000_000_000u128;
+	pub InboxStateReserveAccount: AccountId = AccountId::from(sp_core::hashing::blake2_256(b"engagement_pool"));
+}
+
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
+impl<C> frame_system::offchain::CreateInherent<C> for Runtime
+where
+	RuntimeCall: From<C>,
+{
+	fn create_inherent(call: RuntimeCall) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_bare(call)
+	}
+}
+
+impl pallet_awarizon_state::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type VerificationStakeThreshold = VerificationStakeThreshold;
+	type InboxStateReserveAccount = InboxStateReserveAccount;
+	type AuthorityId = pallet_awarizon_state::crypto::AwarizonAuthId;
+}
+
+parameter_types! {
+	pub const AssetDeposit: Balance = 100 * UNIT;
+	pub const AssetAccountDeposit: Balance = 1 * UNIT;
+	pub const ApprovalDeposit: Balance = 1 * UNIT;
+	pub const AssetsStringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 10 * UNIT;
+	pub const MetadataDepositPerByte: Balance = 1 * MICRO_UNIT;
+}
+
+impl pallet_assets::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type AssetId = u32;
+	type AssetIdParameter = codec::Compact<u32>;
+	type Currency = Balances;
+	type CreateOrigin = frame_support::traits::AsEnsureOriginWithArg<
+		frame_system::EnsureSigned<AccountId>,
+	>;
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetAccountDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = AssetsStringLimit;
+	type Freezer = ();
+	type Holder = ();
+	type Extra = ();
+	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+	type CallbackHandle = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
+parameter_types! {
+	pub const NftsCollectionDeposit: Balance = 100 * UNIT;
+	pub const NftsItemDeposit: Balance = 1 * UNIT;
+	pub const NftsMetadataDepositBase: Balance = 10 * UNIT;
+	pub const NftsAttributeDepositBase: Balance = 1 * UNIT;
+	pub const NftsDepositPerByte: Balance = 1 * MICRO_UNIT;
+	pub const NftsStringLimit: u32 = 256;
+	pub const NftsKeyLimit: u32 = 64;
+	pub const NftsValueLimit: u32 = 256;
+	pub const NftsApprovalsLimit: u32 = 20;
+	pub const NftsItemAttributesApprovalsLimit: u32 = 30;
+	pub const NftsMaxTips: u32 = 10;
+	pub const NftsMaxDeadlineDuration: BlockNumber = 12 * 28800;
+	pub storage NftsFeatures: pallet_nfts::PalletFeatures = pallet_nfts::PalletFeatures::all_enabled();
+}
+
+impl pallet_nfts::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type CollectionId = u32;
+	type ItemId = u32;
+	type Currency = Balances;
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type CreateOrigin = frame_support::traits::AsEnsureOriginWithArg<
+		frame_system::EnsureSigned<AccountId>,
+	>;
+	type Locker = ();
+	type CollectionDeposit = NftsCollectionDeposit;
+	type ItemDeposit = NftsItemDeposit;
+	type MetadataDepositBase = NftsMetadataDepositBase;
+	type AttributeDepositBase = NftsAttributeDepositBase;
+	type DepositPerByte = NftsDepositPerByte;
+	type StringLimit = NftsStringLimit;
+	type KeyLimit = NftsKeyLimit;
+	type ValueLimit = NftsValueLimit;
+	type ApprovalsLimit = NftsApprovalsLimit;
+	type ItemAttributesApprovalsLimit = NftsItemAttributesApprovalsLimit;
+	type MaxTips = NftsMaxTips;
+	type MaxDeadlineDuration = NftsMaxDeadlineDuration;
+	type MaxAttributesPerCall = frame_support::traits::ConstU32<10>;
+	type Features = NftsFeatures;
+	type OffchainSignature = Signature;
+	type OffchainPublic = <Signature as sp_runtime::traits::Verify>::Signer;
+	type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
+	type BlockNumberProvider = frame_system::Pallet<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type Helper = ();
+}
+
+parameter_types! {
+	pub const ContractsDepositPerItem: Balance = 1 * MICRO_UNIT;
+	pub const ContractsDepositPerByte: Balance = MICRO_UNIT / 100;
+	pub const ContractsDefaultDepositLimit: Balance = 10 * UNIT;
+	pub const ContractsCodeHashLockupDepositPercent: sp_runtime::Perbill =
+		sp_runtime::Perbill::from_percent(30);
+	pub storage ContractsSchedule: pallet_contracts::Schedule<Runtime> = Default::default();
+}
+
+impl pallet_contracts::Config for Runtime {
+	type Time = Timestamp;
+	type Randomness = RandomnessFromParentHash;
+	type Currency = Balances;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type CallFilter = frame_support::traits::Nothing;
+	type DepositPerItem = ContractsDepositPerItem;
+	type DepositPerByte = ContractsDepositPerByte;
+	type DefaultDepositLimit = ContractsDefaultDepositLimit;
+	type CallStack = [pallet_contracts::Frame<Self>; 5];
+	type WeightPrice = pallet_transaction_payment::Pallet<Runtime>;
+	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Runtime>;
+	type ChainExtension = ();
+	type Schedule = ContractsSchedule;
+	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
+	type MaxCodeLen = frame_support::traits::ConstU32<128_000>;
+	type MaxStorageKeyLen = frame_support::traits::ConstU32<128>;
+	type MaxTransientStorageSize = frame_support::traits::ConstU32<{ 1 * 1024 * 1024 }>;
+	type UnsafeUnstableInterface = frame_support::traits::ConstBool<false>;
+	type MaxDebugBufferLen = frame_support::traits::ConstU32<{ 2 * 1024 * 1024 }>;
+	type CodeHashLockupDepositPercent = ContractsCodeHashLockupDepositPercent;
+	type Migrations = ();
+	type MaxDelegateDependencies = frame_support::traits::ConstU32<32>;
+	type Debug = ();
+	type Environment = ();
+	type ApiVersion = ();
+	type Xcm = ();
+	type UploadOrigin = frame_system::EnsureSigned<AccountId>;
+	type InstantiateOrigin = frame_system::EnsureSigned<AccountId>;
+}
+
+impl pallet_awarizon_targeting::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+}
+
+impl pallet_awarizon_consensus::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MinValidatorStake = ConstU128<{ 100_000 * 1_000_000_000_000u128 }>;
 }

@@ -8,6 +8,8 @@
 use std::sync::Arc;
 
 use jsonrpsee::RpcModule;
+use sc_client_api::StorageProvider;
+use sc_service::TFullBackend;
 use sc_transaction_pool_api::TransactionPool;
 use solochain_template_runtime::{opaque::Block, AccountId, Balance, Nonce};
 use sp_api::ProvideRuntimeApi;
@@ -29,12 +31,14 @@ pub fn create_full<C, P>(
 where
 	C: ProvideRuntimeApi<Block>,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
+	C: StorageProvider<Block, TFullBackend<Block>>,
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
+	use crate::awarizon_rpc::{AwarizonRpcImpl, AwarizonRpcServer};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
 
@@ -42,19 +46,9 @@ where
 	let FullDeps { client, pool } = deps;
 
 	module.merge(System::new(client.clone(), pool).into_rpc())?;
+	let awarizon = AwarizonRpcImpl::<_, Block>::new(client.clone());
 	module.merge(TransactionPayment::new(client).into_rpc())?;
-
-	// Extend this RPC with a custom API by using the following syntax.
-	// `YourRpcStruct` should have a reference to a client, which is needed
-	// to call into the runtime.
-	// `module.merge(YourRpcTrait::into_rpc(YourRpcStruct::new(ReferenceToClient, ...)))?;`
-
-	// You probably want to enable the `rpc v2 chainSpec` API as well
-	//
-	// let chain_name = chain_spec.name().to_string();
-	// let genesis_hash = client.block_hash(0).ok().flatten().expect("Genesis block exists; qed");
-	// let properties = chain_spec.properties();
-	// module.merge(ChainSpec::new(chain_name, genesis_hash, properties).into_rpc())?;
+	module.merge(awarizon.into_rpc())?;
 
 	Ok(module)
 }

@@ -9,6 +9,10 @@ edition = "2021"
 members = [
     "node",
     "pallets/template",
+    "pallets/awarizon-types",
+    "pallets/awarizon-state",
+    "pallets/awarizon-targeting",
+    "pallets/awarizon-consensus",
     "runtime",
 ]
 resolver = "2"
@@ -16,6 +20,10 @@ resolver = "2"
 [workspace.dependencies]
 solochain-template-runtime = { path = "./runtime", default-features = false }
 pallet-template = { path = "./pallets/template", default-features = false }
+pallet-awarizon-types = { path = "./pallets/awarizon-types", default-features = false }
+pallet-awarizon-state = { path = "./pallets/awarizon-state", default-features = false }
+pallet-awarizon-targeting = { path = "./pallets/awarizon-targeting", default-features = false }
+pallet-awarizon-consensus = { path = "./pallets/awarizon-consensus", default-features = false }
 clap = { version = "4.5.13" }
 frame-benchmarking-cli = { version = "47.0.0", default-features = false }
 frame-metadata-hash-extension = { version = "0.8.0", default-features = false }
@@ -72,6 +80,9 @@ sp-storage = { version = "22.0.0", default-features = false }
 sp-transaction-pool = { version = "36.0.0", default-features = false }
 sp-version = { version = "39.0.0", default-features = false }
 substrate-wasm-builder = { version = "26.0.1", default-features = false }
+
+[patch.crates-io]
+substrate-bip39 = { path = "vendor/substrate-bip39" }
 
 [profile.release]
 opt-level = 3

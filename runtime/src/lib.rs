@@ -7,6 +7,8 @@ pub mod apis;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 pub mod configs;
+#[cfg(test)]
+mod tests;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -22,10 +24,24 @@ use sp_version::RuntimeVersion;
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
+pub use pallet_awarizon_types;
+pub use pallet_awarizon_state;
+pub use pallet_awarizon_targeting;
+pub use pallet_awarizon_consensus;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
 pub mod genesis_config_presets;
+
+pub struct RandomnessFromParentHash;
+impl frame_support::traits::Randomness<Hash, BlockNumber> for RandomnessFromParentHash {
+    fn random(subject: &[u8]) -> (Hash, BlockNumber) {
+        let mut entropy = subject.to_vec();
+        entropy.extend_from_slice(frame_system::Pallet::<Runtime>::parent_hash().as_ref());
+        let hash = sp_core::hashing::blake2_256(&entropy).into();
+        (hash, frame_system::Pallet::<Runtime>::block_number())
+    }
+}
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -61,15 +77,10 @@ impl_opaque_keys! {
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: alloc::borrow::Cow::Borrowed("solochain-template-runtime"),
-	impl_name: alloc::borrow::Cow::Borrowed("solochain-template-runtime"),
+	spec_name: alloc::borrow::Cow::Borrowed("awarizon"),
+	impl_name: alloc::borrow::Cow::Borrowed("awarizon-node"),
 	authoring_version: 1,
-	// The version of the runtime specification. A full node will not attempt to use its native
-	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
-	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
-	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
-	//   the compatible custom types.
-	spec_version: 100,
+	spec_version: 1,
 	impl_version: 1,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -83,7 +94,7 @@ mod block_times {
 	/// slot_duration()`.
 	///
 	/// Change this to adjust the block time.
-	pub const MILLI_SECS_PER_BLOCK: u64 = 6000;
+	pub const MILLI_SECS_PER_BLOCK: u64 = 3000;
 
 	// NOTE: Currently it is not possible to change the slot duration after the chain has started.
 	// Attempting to do so will brick block production.
@@ -104,7 +115,7 @@ pub const MILLI_UNIT: Balance = 1_000_000_000;
 pub const MICRO_UNIT: Balance = 1_000_000;
 
 /// Existential deposit.
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLI_UNIT;
+pub const EXISTENTIAL_DEPOSIT: Balance = MICRO_UNIT;
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -225,4 +236,22 @@ mod runtime {
 	// Include the custom logic from the pallet-template in the runtime.
 	#[runtime::pallet_index(7)]
 	pub type Template = pallet_template;
+
+	#[runtime::pallet_index(8)]
+	pub type AwarizonState = pallet_awarizon_state;
+
+	#[runtime::pallet_index(9)]
+	pub type AwarizonTargeting = pallet_awarizon_targeting;
+
+	#[runtime::pallet_index(10)]
+	pub type AwarizonConsensus = pallet_awarizon_consensus;
+
+	#[runtime::pallet_index(11)]
+	pub type Assets = pallet_assets;
+
+	#[runtime::pallet_index(12)]
+	pub type Nfts = pallet_nfts;
+
+	#[runtime::pallet_index(13)]
+	pub type Contracts = pallet_contracts;
 }

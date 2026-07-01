@@ -184,7 +184,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Register as a validator candidate with self-stake.
         #[pallet::call_index(0)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(100_000_000, 0))]
         pub fn register_validator(
             origin: OriginFor<T>,
             self_stake: u128,
@@ -238,7 +238,7 @@ pub mod pallet {
 
         /// Delegate stake to an active validator.
         #[pallet::call_index(1)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn delegate_stake(
             origin: OriginFor<T>,
             validator: T::AccountId,
@@ -278,7 +278,7 @@ pub mod pallet {
 
         /// Remove a delegation and unreserve the staked funds.
         #[pallet::call_index(2)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn undelegate_stake(
             origin: OriginFor<T>,
             validator: T::AccountId,
@@ -307,7 +307,7 @@ pub mod pallet {
 
         /// Update on-chain performance scores for a validator.
         #[pallet::call_index(3)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn update_performance(
             origin: OriginFor<T>,
             validator: T::AccountId,
@@ -335,7 +335,7 @@ pub mod pallet {
         /// Run an epoch election — select up to TARGET_VALIDATORS validators by
         /// effective rank while respecting geographic caps.
         #[pallet::call_index(4)]
-        #[pallet::weight(Weight::from_parts(50_000, 0))]
+        #[pallet::weight(Weight::from_parts(250_000_000, 0))]
         pub fn run_epoch_election(
             origin: OriginFor<T>,
             epoch: u64,
@@ -403,7 +403,7 @@ pub mod pallet {
 
         /// Slash a validator for misbehavior (root only). Burns 10% of self-stake.
         #[pallet::call_index(5)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn slash_validator(
             origin: OriginFor<T>,
             validator: T::AccountId,

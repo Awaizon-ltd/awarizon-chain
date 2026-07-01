@@ -29,7 +29,7 @@ use frame_support::{
 	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf},
 	weights::{
 		constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		IdentityFee, Weight,
+		Weight, WeightToFee,
 	},
 };
 use frame_system::limits::{BlockLength, BlockWeights};
@@ -140,14 +140,41 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub FeeMultiplier: Multiplier = Multiplier::one();
+
+	// 10 planck per ref_time unit.
+	// A standard-tier extrinsic (50_000_000 ref_time) costs 500_000_000 planck = 0.0005 RIZ.
+	// A heavy-tier extrinsic (100_000_000 ref_time) costs 1_000_000_000 planck = 0.001 RIZ.
+	pub const WeightFeeCoefficient: Balance = 10;
+
+	// 100_000 planck per byte of encoded transaction length.
+	// A 100-byte tx adds 10_000_000 planck = 0.00001 RIZ to the fee.
+	pub const LengthFeeCoefficient: Balance = 100_000;
+}
+
+pub struct AwarizonWeightToFee;
+impl WeightToFee for AwarizonWeightToFee {
+	type Balance = Balance;
+	fn weight_to_fee(weight: &Weight) -> Balance {
+		let ref_time = weight.ref_time() as Balance;
+		ref_time.saturating_mul(WeightFeeCoefficient::get())
+	}
+}
+
+pub struct AwarizonLengthToFee;
+impl WeightToFee for AwarizonLengthToFee {
+	type Balance = Balance;
+	fn weight_to_fee(weight: &Weight) -> Balance {
+		let len = weight.ref_time() as Balance;
+		len.saturating_mul(LengthFeeCoefficient::get())
+	}
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = FungibleAdapter<Balances, ()>;
 	type OperationalFeeMultiplier = ConstU8<5>;
-	type WeightToFee = IdentityFee<Balance>;
-	type LengthToFee = IdentityFee<Balance>;
+	type WeightToFee = AwarizonWeightToFee;
+	type LengthToFee = AwarizonLengthToFee;
 	type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
 	type WeightInfo = pallet_transaction_payment::weights::SubstrateWeight<Runtime>;
 }

@@ -68,7 +68,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Build and cache a Bloom filter for a campaign's targeting criteria.
         #[pallet::call_index(0)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(250_000_000, 0))]
         pub fn build_bloom_filter(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -92,7 +92,7 @@ pub mod pallet {
 
         /// Two-phase match check: Bloom pre-screen then precise index intersection.
         #[pallet::call_index(1)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn check_wallet_match(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -137,7 +137,7 @@ pub mod pallet {
 
         /// Run two-phase targeting against a batch of up to 100 wallets.
         #[pallet::call_index(2)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(250_000_000, 0))]
         pub fn run_targeting_batch(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],

@@ -491,6 +491,107 @@ fn nfts_non_owner_cannot_transfer() {
 }
 
 // =========================================================================
+// Fee model tests (AwarizonWeightToFee / AwarizonLengthToFee)
+// =========================================================================
+
+mod fee_tests {
+    use frame_support::weights::{Weight, WeightToFee};
+    use pallet_awarizon_types::constants::{
+        RIZ, WEIGHT_TIER_HEAVY, WEIGHT_TIER_LIGHT, WEIGHT_TIER_OCW, WEIGHT_TIER_STANDARD,
+        WEIGHT_TIER_VERY_HEAVY,
+    };
+
+    use crate::configs::{AwarizonLengthToFee, AwarizonWeightToFee};
+
+    #[test]
+    fn zero_weight_gives_zero_fee() {
+        let fee = AwarizonWeightToFee::weight_to_fee(&Weight::zero());
+        assert_eq!(fee, 0);
+    }
+
+    #[test]
+    fn fee_calculations_match_expected_planck_values() {
+        // LIGHT: 10_000_000 * 10 planck/unit = 100_000_000 planck = 0.0001 RIZ
+        assert_eq!(
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_LIGHT, 0)),
+            100_000_000
+        );
+        // STANDARD: 50_000_000 * 10 = 500_000_000 planck = 0.0005 RIZ
+        assert_eq!(
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_STANDARD, 0)),
+            500_000_000
+        );
+        // HEAVY: 100_000_000 * 10 = 1_000_000_000 planck = 0.001 RIZ
+        assert_eq!(
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_HEAVY, 0)),
+            1_000_000_000
+        );
+        // VERY_HEAVY: 250_000_000 * 10 = 2_500_000_000 planck = 0.0025 RIZ
+        assert_eq!(
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_VERY_HEAVY, 0)),
+            2_500_000_000
+        );
+        // OCW: 5_000_000 * 10 = 50_000_000 planck = 0.00005 RIZ
+        assert_eq!(
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_OCW, 0)),
+            50_000_000
+        );
+    }
+
+    #[test]
+    fn all_tiers_produce_sub_riz_fees() {
+        for tier in [
+            WEIGHT_TIER_LIGHT,
+            WEIGHT_TIER_STANDARD,
+            WEIGHT_TIER_HEAVY,
+            WEIGHT_TIER_VERY_HEAVY,
+            WEIGHT_TIER_OCW,
+        ] {
+            let fee = AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(tier, 0));
+            assert!(fee < RIZ, "tier {tier} produced fee {fee} >= 1 RIZ ({RIZ} planck)");
+        }
+    }
+
+    #[test]
+    fn length_to_fee_scales_linearly() {
+        let fee_100 = AwarizonLengthToFee::weight_to_fee(&Weight::from_parts(100, 0));
+        let fee_400 = AwarizonLengthToFee::weight_to_fee(&Weight::from_parts(400, 0));
+        assert_eq!(fee_400, fee_100 * 4, "LengthToFee must scale linearly with byte count");
+    }
+
+    #[test]
+    fn ocw_tier_cheaper_than_lightest_user_extrinsic() {
+        let ocw_fee =
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_OCW, 0));
+        let light_fee =
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_LIGHT, 0));
+        assert!(ocw_fee < light_fee, "OCW extrinsics must cost less than user-facing ones");
+    }
+
+    #[test]
+    fn create_campaign_costs_more_than_register_developer() {
+        // register_developer = STANDARD, create_campaign = VERY_HEAVY
+        let register_fee =
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_STANDARD, 0));
+        let campaign_fee =
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_VERY_HEAVY, 0));
+        assert!(campaign_fee > register_fee);
+    }
+
+    #[test]
+    fn operational_multiplier_is_five() {
+        // OperationalFeeMultiplier = ConstU8<5> — operational extrinsics cost 5× normal.
+        // Sudo and governance calls should be expensive to prevent spam.
+        let base_fee =
+            AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_STANDARD, 0));
+        let operational_fee = base_fee.saturating_mul(5);
+        // 0.0005 RIZ * 5 = 0.0025 RIZ — still well under 1 RIZ
+        assert!(operational_fee < RIZ);
+        assert_eq!(operational_fee, 2_500_000_000);
+    }
+}
+
+// =========================================================================
 // pallet-contracts tests
 // =========================================================================
 

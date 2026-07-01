@@ -402,7 +402,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn register_developer(origin: OriginFor<T>) -> DispatchResult {
             let developer = ensure_signed(origin)?;
             ensure!(
@@ -424,7 +424,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn stake_riz(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
             let developer = ensure_signed(origin)?;
             let mut profile = DeveloperProfiles::<T>::get(&developer)
@@ -449,7 +449,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(100_000_000, 0))]
         pub fn register_manifest(
             origin: OriginFor<T>,
             manifest_hash: [u8; 32],
@@ -483,7 +483,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(3)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(250_000_000, 0))]
         pub fn create_campaign(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -564,7 +564,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(4)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(100_000_000, 0))]
         pub fn deliver_to_inbox(
             origin: OriginFor<T>,
             wallet: T::AccountId,
@@ -613,7 +613,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(5)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn terminate_campaign(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -634,7 +634,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(6)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn dismiss_inbox_record(
             origin: OriginFor<T>,
             record_id: [u8; 32],
@@ -654,7 +654,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(7)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn submit_engagement(
             origin: OriginFor<T>,
             record_id: [u8; 32],
@@ -710,7 +710,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(8)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn claim_reward(
             origin: OriginFor<T>,
             record_id: [u8; 32],
@@ -743,7 +743,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(9)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(100_000_000, 0))]
         pub fn update_wallet_index(
             origin: OriginFor<T>,
             wallet_age_days: u32,
@@ -765,7 +765,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(10)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(250_000_000, 0))]
         pub fn advance_epoch(origin: OriginFor<T>) -> DispatchResult {
             ensure_signed(origin)?;
             let current_block = <frame_system::Pallet<T>>::block_number();
@@ -785,7 +785,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(11)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn expire_campaign(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -807,7 +807,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(12)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(10_000_000, 0))]
         pub fn reset_daily_engagement(
             origin: OriginFor<T>,
         ) -> DispatchResult {
@@ -830,7 +830,7 @@ pub mod pallet {
         // ================================================================
 
         #[pallet::call_index(13)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(5_000_000, 0))]
         pub fn ocw_expire_campaign(
             origin: OriginFor<T>,
             campaign_id: [u8; 32],
@@ -851,7 +851,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(14)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(5_000_000, 0))]
         pub fn ocw_advance_epoch(
             origin: OriginFor<T>,
             block_number: BlockNumberFor<T>,
@@ -875,7 +875,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(15)]
-        #[pallet::weight(Weight::from_parts(10_000, 0))]
+        #[pallet::weight(Weight::from_parts(5_000_000, 0))]
         pub fn ocw_prune_inbox_record(
             origin: OriginFor<T>,
             wallet: T::AccountId,

@@ -52,6 +52,19 @@ pub const INBOX_STATE_RESERVE: [u8; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
+// Fee model weight tiers (ref_time units)
+// Multiply by WeightFeeCoefficient (10 planck/unit) to get approximate planck cost.
+// LIGHT        ≈ 0.0001  RIZ  (100_000_000 planck)
+// STANDARD     ≈ 0.0005  RIZ  (500_000_000 planck)
+// HEAVY        ≈ 0.001   RIZ  (1_000_000_000 planck)
+// VERY_HEAVY   ≈ 0.0025  RIZ  (2_500_000_000 planck)
+// OCW          ≈ 0.00005 RIZ  (50_000_000 planck) — near-free, protocol-internal
+pub const WEIGHT_TIER_LIGHT: u64 = 10_000_000;
+pub const WEIGHT_TIER_STANDARD: u64 = 50_000_000;
+pub const WEIGHT_TIER_HEAVY: u64 = 100_000_000;
+pub const WEIGHT_TIER_VERY_HEAVY: u64 = 250_000_000;
+pub const WEIGHT_TIER_OCW: u64 = 5_000_000;
+
 // Transaction type identifiers
 pub const TX_TYPE_FINANCIAL: u8 = 0x01;
 pub const TX_TYPE_DISTRIBUTION: u8 = 0x02;

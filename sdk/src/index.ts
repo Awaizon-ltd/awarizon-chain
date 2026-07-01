@@ -25,6 +25,7 @@ export type {
   WalletTargetingProfile,
   ValidatorPerformanceResponse,
   TokenStats,
+  VestingSchedule,
 } from './types'
 
 // Constants
@@ -90,6 +91,7 @@ export {
   getTokenStats,
   getRecentTransactions,
   getBlockTransactions,
+  getVestingSchedule,
 } from './rpc'
 
 // Extrinsics

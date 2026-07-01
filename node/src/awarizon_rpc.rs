@@ -14,10 +14,10 @@ use sc_service::TFullBackend;
 use sp_blockchain::HeaderBackend;
 use sp_core::{
     crypto::Ss58Codec,
-    hashing::{blake2_128, twox_128},
+    hashing::{blake2_128, blake2_256, twox_128},
     storage::StorageKey,
 };
-use sp_runtime::{traits::Block as BlockT, AccountId32};
+use sp_runtime::{traits::{Block as BlockT, SaturatedConversion}, AccountId32};
 use std::sync::Arc;
 
 pub const ERROR_RUNTIME: i32 = 1;
@@ -96,6 +96,22 @@ struct TransactionRecordRaw {
     pallet_index: u8,
     call_index: u8,
     success: bool,
+}
+
+// Mirrors pallet_vesting::VestingInfo for SCALE decoding.
+#[derive(Decode)]
+struct VestingInfoRaw {
+    locked: u128,
+    per_block: u128,
+    starting_block: u32,
+}
+
+fn locked_at(v: &VestingInfoRaw, now: u32) -> u128 {
+    if now < v.starting_block {
+        return v.locked;
+    }
+    let elapsed = (now - v.starting_block) as u128;
+    v.locked.saturating_sub(v.per_block.saturating_mul(elapsed))
 }
 
 // ============================================================
@@ -559,16 +575,30 @@ where
     async fn get_network_stats(&self) -> RpcResult<NetworkStats> {
         let developer_staked = self.read_u128_value("AwarizonState", "TotalStaked")?;
         let inbox_reserve = self.read_u128_value("AwarizonState", "InboxStateReserveBalance")?;
-        let validator_self_staked =
-            self.read_u128_value("AwarizonConsensus", "TotalValidatorSelfStake")?;
-        let validator_delegated =
-            self.read_u128_value("AwarizonConsensus", "TotalValidatorDelegatedStake")?;
         let total_issuance = self.read_u128_value("Balances", "TotalIssuance")?;
+        let current_block: u32 = self.client.info().best_number.saturated_into();
 
-        let non_circulating = developer_staked
-            .saturating_add(validator_self_staked)
-            .saturating_add(validator_delegated)
-            .saturating_add(inbox_reserve);
+        // Sum still-locked tokens across all 4 vesting allocation accounts.
+        let alloc_seeds: &[&[u8]] = &[
+            b"validator_rewards",
+            b"developer_fund",
+            b"foundation_reserve",
+            b"community_sale",
+        ];
+        let mut vesting_locked: u128 = 0;
+        for seed in alloc_seeds {
+            let acct = AccountId32::from(blake2_256(seed));
+            let key = map_key_b2("Vesting", "Vesting", &acct.encode());
+            if let Some(b) = self.read_raw(key)? {
+                if let Ok(schedules) = Vec::<VestingInfoRaw>::decode(&mut &b[..]) {
+                    for s in &schedules {
+                        vesting_locked = vesting_locked.saturating_add(locked_at(s, current_block));
+                    }
+                }
+            }
+        }
+
+        let non_circulating = vesting_locked.saturating_add(inbox_reserve);
         let circulating = total_issuance.saturating_sub(non_circulating);
 
         Ok(NetworkStats {

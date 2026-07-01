@@ -15,18 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{AccountId, BalancesConfig, RuntimeGenesisConfig, SudoConfig};
+use crate::{AccountId, BalancesConfig, RuntimeGenesisConfig, SudoConfig, VestingConfig};
 use alloc::{vec, vec::Vec};
-use frame_support::build_struct_json_patch;
+use frame_support::{build_struct_json_patch, PalletId};
 use serde_json::Value;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::hashing::blake2_256;
 use sp_genesis_builder::{self, PresetId};
 use sp_keyring::Sr25519Keyring;
+use sp_runtime::traits::AccountIdConversion;
 
 fn awarizon_account(seed: &[u8]) -> AccountId {
 	blake2_256(seed).into()
+}
+
+fn engagement_pool_account() -> AccountId {
+	PalletId(*b"awz/engp").into_account_truncating()
 }
 
 // Returns the genesis config presets populated with given parameters.
@@ -42,7 +47,7 @@ fn testnet_genesis(
 		.map(|k| (k, 1u128 << 60))
 		.collect();
 	balances.extend(vec![
-		(awarizon_account(b"engagement_pool"),   300_000_000u128 * riz),
+		(engagement_pool_account(),              300_000_000u128 * riz),
 		(awarizon_account(b"validator_rewards"), 250_000_000u128 * riz),
 		(awarizon_account(b"developer_fund"),    200_000_000u128 * riz),
 		(awarizon_account(b"foundation_reserve"),150_000_000u128 * riz),
@@ -50,6 +55,14 @@ fn testnet_genesis(
 	]);
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig { balances },
+		vesting: VestingConfig {
+			vesting: vec![
+				(awarizon_account(b"validator_rewards"),  1u32,          42_048_000u32, 0u128),
+				(awarizon_account(b"developer_fund"),     5_184_001u32,  21_024_000u32, 0u128),
+				(awarizon_account(b"foundation_reserve"), 10_512_001u32, 31_536_000u32, 0u128),
+				(awarizon_account(b"community_sale"),     1u32,          10_368_000u32, 60_000_000u128 * riz),
+			],
+		},
 		aura: pallet_aura::GenesisConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>(),
 		},

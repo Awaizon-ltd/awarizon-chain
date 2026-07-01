@@ -178,6 +178,12 @@ export interface TokenStats {
   engagement_pool_balance: string  // u128 as decimal string
 }
 
+export interface VestingSchedule {
+  locked: string       // u128 as decimal string — total locked at schedule start
+  per_block: string    // u128 as decimal string — planck released per block
+  starting_block: number // u32 — block at which vesting begins
+}
+
 // ----------------------------------------------------------------
 // EngagementEvent (pallets/awarizon-types/src/lib.rs)
 // ----------------------------------------------------------------

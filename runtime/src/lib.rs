@@ -254,4 +254,7 @@ mod runtime {
 
 	#[runtime::pallet_index(13)]
 	pub type Contracts = pallet_contracts;
+
+	#[runtime::pallet_index(14)]
+	pub type Vesting = pallet_vesting;
 }

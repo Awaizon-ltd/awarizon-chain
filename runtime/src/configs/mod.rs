@@ -26,16 +26,17 @@
 // Substrate and Polkadot dependencies
 use frame_support::{
 	derive_impl, parameter_types,
-	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf},
+	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf, WithdrawReasons},
 	weights::{
 		constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		Weight, WeightToFee,
 	},
+	PalletId,
 };
 use frame_system::limits::{BlockLength, BlockWeights};
 use pallet_transaction_payment::{ConstFeeMultiplier, FungibleAdapter, Multiplier};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_runtime::{traits::One, Perbill};
+use sp_runtime::{traits::{AccountIdConversion, One}, Perbill};
 use sp_version::RuntimeVersion;
 
 // Local module imports
@@ -193,7 +194,10 @@ impl pallet_template::Config for Runtime {
 
 parameter_types! {
 	pub const VerificationStakeThreshold: u128 = 10_000u128 * 1_000_000_000_000u128;
-	pub InboxStateReserveAccount: AccountId = AccountId::from(sp_core::hashing::blake2_256(b"engagement_pool"));
+	pub EngagementPoolAccount: AccountId = PalletId(*b"awz/engp").into_account_truncating();
+	pub const MinVestedTransfer: Balance = 1_000_000_000_000u128;
+	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
@@ -217,7 +221,7 @@ impl pallet_awarizon_state::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type VerificationStakeThreshold = VerificationStakeThreshold;
-	type InboxStateReserveAccount = InboxStateReserveAccount;
+	type InboxStateReserveAccount = EngagementPoolAccount;
 	type AuthorityId = pallet_awarizon_state::crypto::AwarizonAuthId;
 }
 
@@ -354,4 +358,15 @@ impl pallet_awarizon_consensus::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MinValidatorStake = ConstU128<{ 100_000 * 1_000_000_000_000u128 }>;
+}
+
+impl pallet_vesting::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BlockNumberToBalance = sp_runtime::traits::ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
+	type BlockNumberProvider = System;
+	const MAX_VESTING_SCHEDULES: u32 = 3;
 }

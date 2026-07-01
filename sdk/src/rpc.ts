@@ -12,6 +12,7 @@ import type {
   Campaign,
   InboxRecord,
   TransactionSummary,
+  VestingSchedule,
 } from './types'
 
 // ----------------------------------------------------------------
@@ -198,5 +199,19 @@ export async function getBlockTransactions(
     block_number: Number(r.block_number ?? 0),
     extrinsic_index: Number(r.extrinsic_index ?? 0),
     success: Boolean(r.success),
+  }))
+}
+
+export async function getVestingSchedule(
+  api: ApiPromise,
+  account: string
+): Promise<VestingSchedule[]> {
+  const result = await (api.query as any).vesting.vesting(account)
+  const json = result.toJSON()
+  if (!json || !Array.isArray(json)) return []
+  return json.map((v: any) => ({
+    locked: String(v.locked ?? v.Locked ?? '0'),
+    per_block: String(v.perBlock ?? v.per_block ?? '0'),
+    starting_block: Number(v.startingBlock ?? v.starting_block ?? 0),
   }))
 }

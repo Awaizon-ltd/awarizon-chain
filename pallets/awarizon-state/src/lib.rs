@@ -208,6 +208,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type InboxStateReserveBalance<T: Config> = StorageValue<_, u128, ValueQuery>;
 
+    /// Cumulative total of all extrinsics processed since genesis.
+    #[pallet::storage]
+    pub type TotalExtrinsics<T: Config> = StorageValue<_, u64, ValueQuery>;
+
     // ================================================================
     // TARGETING INDEX
     // ================================================================
@@ -339,6 +343,13 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_finalize(_n: BlockNumberFor<T>) {
+            let count = frame_system::Pallet::<T>::extrinsic_count();
+            TotalExtrinsics::<T>::mutate(|total| {
+                *total = total.saturating_add(count as u64);
+            });
+        }
+
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             let block_u64: u64 = block_number.saturated_into();
             if block_u64 % 10 == 0 {

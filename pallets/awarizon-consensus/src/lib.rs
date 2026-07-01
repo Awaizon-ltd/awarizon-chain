@@ -149,6 +149,14 @@ pub mod pallet {
     #[pallet::storage]
     pub type ConsensusEpoch<T: Config> = StorageValue<_, u64, ValueQuery>;
 
+    /// Total RIZ staked as validator self-stake
+    #[pallet::storage]
+    pub type TotalValidatorSelfStake<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    /// Total RIZ delegated to validators
+    #[pallet::storage]
+    pub type TotalValidatorDelegatedStake<T: Config> = StorageValue<_, u128, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -210,6 +218,9 @@ pub mod pallet {
             );
             T::Currency::reserve(&who, self_stake.saturated_into())
                 .map_err(|_| Error::<T>::InsufficientBalance)?;
+            TotalValidatorSelfStake::<T>::mutate(|t| {
+                *t = t.saturating_add(self_stake);
+            });
             let current_epoch = ConsensusEpoch::<T>::get();
             let validator_info = ValidatorInfo {
                 account: who.clone(),
@@ -256,6 +267,9 @@ pub mod pallet {
             );
             T::Currency::reserve(&who, amount.saturated_into())
                 .map_err(|_| Error::<T>::InsufficientBalance)?;
+            TotalValidatorDelegatedStake::<T>::mutate(|t| {
+                *t = t.saturating_add(amount);
+            });
             let current_epoch = ConsensusEpoch::<T>::get();
             let delegation = Delegation {
                 delegator: who.clone(),
@@ -287,6 +301,9 @@ pub mod pallet {
             let delegation =
                 Delegations::<T>::get(&who, &validator).ok_or(Error::<T>::DelegationNotFound)?;
             T::Currency::unreserve(&who, delegation.amount.saturated_into());
+            TotalValidatorDelegatedStake::<T>::mutate(|t| {
+                *t = t.saturating_sub(delegation.amount);
+            });
             ValidatorDelegatedStake::<T>::mutate(&validator, |s| {
                 *s = s.saturating_sub(delegation.amount);
             });
@@ -416,6 +433,9 @@ pub mod pallet {
             let (imbalance, _) =
                 T::Currency::slash_reserved(&validator, slash_amount.saturated_into());
             drop(imbalance); // burn: reduces TotalIssuance
+            TotalValidatorSelfStake::<T>::mutate(|t| {
+                *t = t.saturating_sub(slash_amount);
+            });
             info.self_stake = info.self_stake.saturating_sub(slash_amount);
             info.slash_count = info.slash_count.saturating_add(1);
             if info.slash_count >= 3 {

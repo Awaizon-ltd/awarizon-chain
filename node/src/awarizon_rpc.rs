@@ -41,6 +41,9 @@ pub struct NetworkStats {
     pub total_staked: String,
     pub current_epoch: u64,
     pub inbox_reserve_balance: String,
+    pub total_extrinsics: u64,
+    pub circulating_supply: String,
+    pub non_circulating_supply: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -528,17 +531,30 @@ where
     }
 
     async fn get_network_stats(&self) -> RpcResult<NetworkStats> {
+        let developer_staked = self.read_u128_value("AwarizonState", "TotalStaked")?;
+        let inbox_reserve = self.read_u128_value("AwarizonState", "InboxStateReserveBalance")?;
+        let validator_self_staked =
+            self.read_u128_value("AwarizonConsensus", "TotalValidatorSelfStake")?;
+        let validator_delegated =
+            self.read_u128_value("AwarizonConsensus", "TotalValidatorDelegatedStake")?;
+        let total_issuance = self.read_u128_value("Balances", "TotalIssuance")?;
+
+        let non_circulating = developer_staked
+            .saturating_add(validator_self_staked)
+            .saturating_add(validator_delegated)
+            .saturating_add(inbox_reserve);
+        let circulating = total_issuance.saturating_sub(non_circulating);
+
         Ok(NetworkStats {
             total_wallets: self.read_u64_value("AwarizonState", "TotalWallets")?,
             total_deliveries: self.read_u64_value("AwarizonState", "TotalDeliveries")?,
             active_campaigns: self.read_u64_value("AwarizonState", "ActiveCampaignCount")?,
-            total_staked: self
-                .read_u128_value("AwarizonState", "TotalStaked")?
-                .to_string(),
+            total_staked: developer_staked.to_string(),
             current_epoch: self.read_u64_value("AwarizonState", "CurrentEpoch")?,
-            inbox_reserve_balance: self
-                .read_u128_value("AwarizonState", "InboxStateReserveBalance")?
-                .to_string(),
+            inbox_reserve_balance: inbox_reserve.to_string(),
+            total_extrinsics: self.read_u64_value("AwarizonState", "TotalExtrinsics")?,
+            circulating_supply: circulating.to_string(),
+            non_circulating_supply: non_circulating.to_string(),
         })
     }
 
@@ -571,6 +587,9 @@ mod tests {
             total_staked: "500000000000000".to_string(),
             current_epoch: 3,
             inbox_reserve_balance: "1000000000000".to_string(),
+            total_extrinsics: 0,
+            circulating_supply: "0".to_string(),
+            non_circulating_supply: "0".to_string(),
         };
         let json = serde_json::to_value(&stats).unwrap();
         assert_eq!(json["total_wallets"], 42);
@@ -579,6 +598,9 @@ mod tests {
         assert_eq!(json["total_staked"], "500000000000000");
         assert_eq!(json["current_epoch"], 3);
         assert_eq!(json["inbox_reserve_balance"], "1000000000000");
+        assert_eq!(json["total_extrinsics"], 0);
+        assert_eq!(json["circulating_supply"], "0");
+        assert_eq!(json["non_circulating_supply"], "0");
     }
 
     #[test]

@@ -166,6 +166,9 @@ export async function getNetworkStats(api: ApiPromise): Promise<NetworkStats> {
     total_staked: String(json.total_staked ?? '0'),
     current_epoch: BigInt(String(json.current_epoch ?? '0')),
     inbox_reserve_balance: String(json.inbox_reserve_balance ?? '0'),
+    total_extrinsics: Number(json.total_extrinsics ?? 0),
+    circulating_supply: String(json.circulating_supply ?? '0'),
+    non_circulating_supply: String(json.non_circulating_supply ?? '0'),
   }
 }
 

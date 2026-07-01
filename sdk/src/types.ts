@@ -139,6 +139,9 @@ export interface NetworkStats {
   total_staked: string           // u128 as decimal string
   current_epoch: bigint          // u64
   inbox_reserve_balance: string  // u128 as decimal string
+  total_extrinsics: number       // u64
+  circulating_supply: string     // u128 as decimal string
+  non_circulating_supply: string // u128 as decimal string
 }
 
 export interface CampaignDeliveryStatus {

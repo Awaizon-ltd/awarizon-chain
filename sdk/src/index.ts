@@ -21,6 +21,7 @@ export type {
   EngagementEvent,
   NetworkStats,
   CampaignDeliveryStatus,
+  TransactionSummary,
   WalletTargetingProfile,
   ValidatorPerformanceResponse,
   TokenStats,
@@ -87,6 +88,8 @@ export {
   getValidatorPerformance,
   getNetworkStats,
   getTokenStats,
+  getRecentTransactions,
+  getBlockTransactions,
 } from './rpc'
 
 // Extrinsics

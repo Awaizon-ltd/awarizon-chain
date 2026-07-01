@@ -47,6 +47,19 @@ pub mod pallet {
     pub(crate) type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
+    #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+    pub struct TransactionRecord<AccountId>
+    where
+        AccountId: Encode + Decode + TypeInfo + Clone + PartialEq + MaxEncodedLen,
+    {
+        pub block_number: u32,
+        pub extrinsic_index: u32,
+        pub signer: Option<AccountId>,
+        pub pallet_index: u8,
+        pub call_index: u8,
+        pub success: bool,
+    }
+
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
@@ -212,6 +225,14 @@ pub mod pallet {
     #[pallet::storage]
     pub type TotalExtrinsics<T: Config> = StorageValue<_, u64, ValueQuery>;
 
+    /// Rolling list of the last 50 transactions across all blocks.
+    #[pallet::storage]
+    pub type RecentTransactions<T: Config> = StorageValue<
+        _,
+        BoundedVec<TransactionRecord<T::AccountId>, ConstU32<50>>,
+        ValueQuery,
+    >;
+
     // ================================================================
     // TARGETING INDEX
     // ================================================================
@@ -343,11 +364,29 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_finalize(_n: BlockNumberFor<T>) {
+        fn on_finalize(n: BlockNumberFor<T>) {
             let count = frame_system::Pallet::<T>::extrinsic_count();
             TotalExtrinsics::<T>::mutate(|total| {
                 *total = total.saturating_add(count as u64);
             });
+            if count > 0 {
+                let block_number: u32 = n.saturated_into();
+                RecentTransactions::<T>::mutate(|txs| {
+                    for ext_index in 0..count {
+                        if txs.len() >= 50 {
+                            txs.remove(0);
+                        }
+                        let _ = txs.try_push(TransactionRecord {
+                            block_number,
+                            extrinsic_index: ext_index,
+                            signer: None,
+                            pallet_index: 0,
+                            call_index: 0,
+                            success: true,
+                        });
+                    }
+                });
+            }
         }
 
         fn offchain_worker(block_number: BlockNumberFor<T>) {

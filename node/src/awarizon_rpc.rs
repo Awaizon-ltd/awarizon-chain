@@ -78,6 +78,26 @@ pub struct TokenStats {
     pub engagement_pool_balance: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct TransactionSummary {
+    pub block_number: u32,
+    pub extrinsic_index: u32,
+    pub success: bool,
+}
+
+// Mirrors pallet_awarizon_state::TransactionRecord for SCALE decoding.
+// Field order and types must match exactly.
+#[derive(Decode)]
+#[allow(dead_code)]
+struct TransactionRecordRaw {
+    block_number: u32,
+    extrinsic_index: u32,
+    signer: Option<AccountId32>,
+    pallet_index: u8,
+    call_index: u8,
+    success: bool,
+}
+
 // ============================================================
 // Storage key helpers
 // ============================================================
@@ -219,6 +239,12 @@ pub trait AwarizonRpc {
 
     #[method(name = "awarizon_getTokenStats")]
     async fn get_token_stats(&self) -> RpcResult<TokenStats>;
+
+    #[method(name = "awarizon_getRecentTransactions")]
+    async fn get_recent_transactions(&self) -> RpcResult<Vec<TransactionSummary>>;
+
+    #[method(name = "awarizon_getBlockTransactions")]
+    async fn get_block_transactions(&self, block_number: u32) -> RpcResult<Vec<TransactionSummary>>;
 }
 
 // ============================================================
@@ -567,6 +593,43 @@ where
                 .read_u128_value("AwarizonState", "InboxStateReserveBalance")?
                 .to_string(),
         })
+    }
+
+    async fn get_recent_transactions(&self) -> RpcResult<Vec<TransactionSummary>> {
+        match self.read_raw(value_key("AwarizonState", "RecentTransactions"))? {
+            None => Ok(vec![]),
+            Some(b) => {
+                let records = Vec::<TransactionRecordRaw>::decode(&mut &b[..])
+                    .map_err(|e| runtime_error(&e.to_string()))?;
+                Ok(records
+                    .into_iter()
+                    .map(|r| TransactionSummary {
+                        block_number: r.block_number,
+                        extrinsic_index: r.extrinsic_index,
+                        success: r.success,
+                    })
+                    .collect())
+            }
+        }
+    }
+
+    async fn get_block_transactions(&self, block_number: u32) -> RpcResult<Vec<TransactionSummary>> {
+        match self.read_raw(value_key("AwarizonState", "RecentTransactions"))? {
+            None => Ok(vec![]),
+            Some(b) => {
+                let records = Vec::<TransactionRecordRaw>::decode(&mut &b[..])
+                    .map_err(|e| runtime_error(&e.to_string()))?;
+                Ok(records
+                    .into_iter()
+                    .filter(|r| r.block_number == block_number)
+                    .map(|r| TransactionSummary {
+                        block_number: r.block_number,
+                        extrinsic_index: r.extrinsic_index,
+                        success: r.success,
+                    })
+                    .collect())
+            }
+        }
     }
 }
 

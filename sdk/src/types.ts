@@ -144,6 +144,12 @@ export interface NetworkStats {
   non_circulating_supply: string // u128 as decimal string
 }
 
+export interface TransactionSummary {
+  block_number: number    // u32
+  extrinsic_index: number // u32
+  success: boolean
+}
+
 export interface CampaignDeliveryStatus {
   current_deliveries: bigint  // u64
   max_deliveries: bigint      // u64

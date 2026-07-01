@@ -11,6 +11,7 @@ import type {
   DeveloperProfile,
   Campaign,
   InboxRecord,
+  TransactionSummary,
 } from './types'
 
 // ----------------------------------------------------------------
@@ -175,4 +176,27 @@ export async function getNetworkStats(api: ApiPromise): Promise<NetworkStats> {
 export async function getTokenStats(api: ApiPromise): Promise<TokenStats> {
   const result = await (api.rpc as any).awarizon.getTokenStats()
   return result.toJSON() as TokenStats
+}
+
+export async function getRecentTransactions(
+  api: ApiPromise
+): Promise<TransactionSummary[]> {
+  const result = await (api.rpc as any).awarizon.getRecentTransactions()
+  return (result.toJSON() as any[]).map((r: any) => ({
+    block_number: Number(r.block_number ?? 0),
+    extrinsic_index: Number(r.extrinsic_index ?? 0),
+    success: Boolean(r.success),
+  }))
+}
+
+export async function getBlockTransactions(
+  api: ApiPromise,
+  blockNumber: number
+): Promise<TransactionSummary[]> {
+  const result = await (api.rpc as any).awarizon.getBlockTransactions(blockNumber)
+  return (result.toJSON() as any[]).map((r: any) => ({
+    block_number: Number(r.block_number ?? 0),
+    extrinsic_index: Number(r.extrinsic_index ?? 0),
+    success: Boolean(r.success),
+  }))
 }

@@ -161,23 +161,23 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
           Connecting to chain…
         </div>
       ) : (
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr className="bg-awz-bg/40">
-              <th className="px-5 py-2 text-left w-6" />
-              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Block #</th>
-              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Hash</th>
-              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-14">Txns</th>
-              <th className="px-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-16">Age</th>
+              <th className="py-2 text-left w-[42px]" />
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[18%]">Block #</th>
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[37%]">Hash</th>
+              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[13%]">Txns</th>
+              <th className="pl-6 pr-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Age</th>
             </tr>
           </thead>
           <tbody>
             {blocks.map((b) => (
               <tr key={b.number} className="hover:bg-awz-gold/5 transition-colors group">
-                <td className="pl-5 pr-2 py-3 w-6">
+                <td className="pl-5 pr-2 py-3">
                   <TbCube size={18} className="text-awz-gold" />
                 </td>
-                <td className="px-2 py-3 w-[88px]">
+                <td className="px-2 py-3 overflow-hidden">
                   <Link
                     to={`/block/${b.number}`}
                     className="font-mono text-sm font-bold text-awz-text group-hover:text-awz-gold transition-colors whitespace-nowrap"
@@ -185,15 +185,15 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
                     #{b.number.toLocaleString()}
                   </Link>
                 </td>
-                <td className="px-2 py-3 max-w-0">
+                <td className="px-2 py-3 overflow-hidden">
                   <span className="font-mono text-sm text-awz-muted block truncate">
                     {truncHash(b.hash)}
                   </span>
                 </td>
-                <td className="px-2 py-3 text-right w-14">
+                <td className="px-2 py-3 text-right">
                   <span className="font-mono text-sm text-awz-muted">{b.extrinsicCount}</span>
                 </td>
-                <td className="pl-2 pr-5 py-3 text-right w-16">
+                <td className="pl-6 pr-5 py-3 text-right">
                   <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(b.timestamp)}</span>
                 </td>
               </tr>
@@ -224,26 +224,26 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
           No user transactions yet — inherents excluded
         </div>
       ) : (
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr className="bg-awz-bg/40">
-              <th className="px-5 py-2 text-left w-6" />
-              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Hash / Call</th>
-              <th className="px-2 py-2 text-center text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[76px]">Type</th>
-              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[60px]">Block</th>
-              <th className="px-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-16">Age</th>
+              <th className="py-2 text-left w-[42px]" />
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[35%]">Hash / Call</th>
+              <th className="px-2 py-2 text-center text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[18%]">Type</th>
+              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[16%]">Block</th>
+              <th className="pl-6 pr-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Age</th>
             </tr>
           </thead>
           <tbody>
             {txs.map((tx, i) => (
               <tr key={`${tx.blockNumber}-${tx.index}-${i}`} className="hover:bg-awz-gold/5 transition-colors">
-                <td className="pl-5 pr-2 py-3 w-6">
+                <td className="pl-5 pr-2 py-3">
                   {tx.isSigned
                     ? <TbArrowsExchange size={18} className="text-awz-gold" />
                     : <TbBolt size={18} className="text-awz-muted/50" />
                   }
                 </td>
-                <td className="px-2 py-3 max-w-0">
+                <td className="px-2 py-3 overflow-hidden">
                   <Link
                     to={`/tx/${tx.blockNumber}/${tx.index}`}
                     className="font-mono text-sm text-awz-green hover:underline block truncate"
@@ -254,12 +254,12 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
                     {tx.section}.{tx.method}
                   </span>
                 </td>
-                <td className="px-2 py-3 text-center w-[76px]">
+                <td className="px-2 py-3 text-center overflow-hidden">
                   <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide ${typeColor(tx.type)}`}>
                     {tx.type}
                   </span>
                 </td>
-                <td className="px-2 py-3 text-right w-[60px]">
+                <td className="px-2 py-3 text-right overflow-hidden">
                   <Link
                     to={`/block/${tx.blockNumber}`}
                     className="font-mono text-sm text-awz-gold hover:underline whitespace-nowrap"
@@ -267,7 +267,7 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
                     #{tx.blockNumber.toLocaleString()}
                   </Link>
                 </td>
-                <td className="pl-2 pr-5 py-3 text-right w-16">
+                <td className="pl-6 pr-5 py-3 text-right">
                   <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(tx.timestamp)}</span>
                 </td>
               </tr>

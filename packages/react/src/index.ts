@@ -6,6 +6,8 @@ export { AwarizonContext, useAwarizonContext } from './context/AwarizonContext'
 
 // Hooks
 export { useAwarizon } from './hooks/useAwarizon'
+export { useTransaction } from './hooks/useTransaction'
+export type { TxStatus, TxRecord, UseTransactionReturn } from './hooks/useTransaction'
 export { useWallet } from './hooks/useWallet'
 export { useNetwork } from './hooks/useNetwork'
 export { useInbox } from './hooks/useInbox'

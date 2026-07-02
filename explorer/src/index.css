@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light mode (default) ─────────────────────────────────────── */
+:root {
+  --awz-bg: #FAFAFA;
+  --awz-surface-rgb: 255 255 255;
+  --awz-border-rgb: 229 231 235;
+  --awz-text-rgb: 17 17 17;
+  --awz-muted-rgb: 107 114 128;
+  --awz-gold-rgb: 249 169 0;
+  --awz-gold-dim-rgb: 180 110 0;
+  --awz-red-rgb: 220 38 38;
+  --awz-yellow-rgb: 217 119 6;
+}
+
+/* ── Dark mode ────────────────────────────────────────────────── */
+html.dark {
+  --awz-bg: #0A0A0A;
+  --awz-surface-rgb: 17 17 17;
+  --awz-border-rgb: 31 31 31;
+  --awz-text-rgb: 232 232 232;
+  --awz-muted-rgb: 102 102 102;
+  --awz-gold-rgb: 249 169 0;
+  --awz-gold-dim-rgb: 180 110 0;
+  --awz-red-rgb: 255 68 68;
+  --awz-yellow-rgb: 255 204 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--awz-bg);
+  color: rgb(var(--awz-text-rgb));
+  font-family: 'JetBrains Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--awz-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--awz-border-rgb));
+  border-radius: 2px;
+}
+
+::selection {
+  background: rgb(249 169 0 / 0.25);
+  color: rgb(249 169 0);
+}

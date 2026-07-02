@@ -247,6 +247,43 @@ export interface TxInfo {
   method: string
   isSigned: boolean
   timestamp: number
+  type: string
+}
+
+// Map pallet section + method to a human-readable transaction type label.
+// Section names come from polkadot.js metadata (camelCase pallet names).
+export function classifyExtrinsic(section: string, method: string): string {
+  const m = method.toLowerCase()
+  switch (section) {
+    case 'timestamp':   return 'Timestamp'
+    case 'balances':
+      if (m.startsWith('transfer')) return 'Transfer'
+      if (m.includes('force'))      return 'Force Move'
+      return 'Balances'
+    case 'vesting':     return 'Vesting'
+    case 'sudo':        return 'Sudo'
+    case 'utility':     return 'Batch'
+    case 'system':      return 'System'
+    case 'session':     return 'Session'
+    case 'evm':
+      if (m === 'call')              return 'Contract Call'
+      if (m.startsWith('create'))    return 'Deploy'
+      return 'EVM'
+    case 'ethereum':    return 'Ethereum'
+    case 'awarizonState':
+      if (m.includes('developer'))  return 'Developer'
+      if (m.includes('manifest'))   return 'Manifest'
+      if (m.includes('campaign'))   return 'Campaign'
+      if (m.includes('inbox') || m.includes('deliver')) return 'Delivery'
+      if (m.includes('engage'))     return 'Engagement'
+      if (m.includes('validator'))  return 'Validator'
+      if (m.includes('delegate'))   return 'Delegation'
+      if (m.includes('stake') || m.includes('unstake')) return 'Staking'
+      if (m.includes('reward'))     return 'Reward'
+      return 'Chain'
+    default:
+      return section.charAt(0).toUpperCase() + section.slice(1)
+  }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────
@@ -288,26 +325,44 @@ export function useLiveChainData() {
             try {
               const signed = await (client.getApi().rpc.chain as any).getBlock(blockHash)
               const exts: any[] = Array.from(signed.block.extrinsics)
-              const ts = Date.now()
+
+              // Extract real block timestamp from the timestamp.set inherent (first extrinsic).
+              // args[0] is Compact<u64> milliseconds since Unix epoch.
+              const tsExt = exts.find((e: any) =>
+                e.method?.section === 'timestamp' && e.method?.method === 'set'
+              )
+              const blockTs: number = tsExt?.method?.args?.[0]?.toNumber?.() ?? Date.now()
 
               recentCounts.push(exts.length)
               if (recentCounts.length > 10) recentCounts.shift()
               const newTps = recentCounts.reduce((s: number, n: number) => s + n, 0) / 30
 
-              const newTxs: TxInfo[] = exts.map((ext: any, i: number) => ({
-                blockNumber,
-                index: i,
-                hash: ext.hash?.toHex?.() ?? '0x',
-                section: ext.method?.section ?? 'unknown',
-                method: ext.method?.method ?? 'unknown',
-                isSigned: Boolean(ext.isSigned),
-                timestamp: ts,
-              }))
+              // Exclude inherents (unsigned, section === 'timestamp' | 'parachainSystem' etc.)
+              // from the user-facing transaction list.
+              const userExts = exts.filter((e: any) => {
+                const s: string = e.method?.section ?? ''
+                return s !== 'timestamp' && s !== 'parachainSystem'
+              })
+
+              const newTxs: TxInfo[] = userExts.map((ext: any, i: number) => {
+                const section: string = ext.method?.section ?? 'unknown'
+                const method: string  = ext.method?.method  ?? 'unknown'
+                return {
+                  blockNumber,
+                  index: exts.indexOf(ext), // original index within block
+                  hash: ext.hash?.toHex?.() ?? '0x',
+                  section,
+                  method,
+                  isSigned: Boolean(ext.isSigned),
+                  timestamp: blockTs,
+                  type: classifyExtrinsic(section, method),
+                }
+              })
 
               setLatestBlockNumber(blockNumber)
               setTps(newTps)
               setBlocks(prev =>
-                [{ number: blockNumber, hash: blockHash, timestamp: ts, extrinsicCount: exts.length }, ...prev].slice(0, 20)
+                [{ number: blockNumber, hash: blockHash, timestamp: blockTs, extrinsicCount: userExts.length }, ...prev].slice(0, 20)
               )
               setTxs(prev => [...newTxs, ...prev].slice(0, 50))
             } catch {

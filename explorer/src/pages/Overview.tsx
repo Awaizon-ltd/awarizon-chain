@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Coins, Lock, Timer, RefreshCw, Clock, Shield,
   Box, ArrowLeftRight, Inbox, Zap,
   Users, Wallet, Megaphone, Send, PiggyBank,
 } from 'lucide-react'
 import { RiStackLine, RiExchangeLine } from 'react-icons/ri'
-import { TbCube, TbArrowsExchange, TbBolt, TbCircleCheck } from 'react-icons/tb'
+import { TbCube, TbArrowsExchange, TbBolt } from 'react-icons/tb'
 import {
   useNetworkStats,
   useValidatorCount,
@@ -32,9 +33,30 @@ function formatRizStr(planckStr: string, decimals = 0): string {
   try { return formatRizComma(BigInt(planckStr), decimals) } catch { return '———' }
 }
 
-function truncHash(hash: string): string {
-  if (!hash || hash.length < 12) return hash
-  return `${hash.slice(0, 8)}…${hash.slice(-4)}`
+function typeColor(type: string): string {
+  switch (type) {
+    case 'Transfer':    return 'bg-emerald-500/10 text-emerald-400'
+    case 'Campaign':    return 'bg-awz-gold/10 text-awz-gold'
+    case 'Delivery':    return 'bg-green-500/10 text-green-400'
+    case 'Engagement':  return 'bg-orange-500/10 text-orange-400'
+    case 'Developer':   return 'bg-blue-500/10 text-blue-400'
+    case 'Manifest':    return 'bg-indigo-500/10 text-indigo-400'
+    case 'Validator':   return 'bg-yellow-500/10 text-yellow-400'
+    case 'Delegation':  return 'bg-amber-500/10 text-amber-400'
+    case 'Staking':     return 'bg-purple-500/10 text-purple-400'
+    case 'Vesting':     return 'bg-pink-500/10 text-pink-400'
+    case 'Contract Call':
+    case 'Deploy':
+    case 'EVM':
+    case 'Ethereum':    return 'bg-violet-500/10 text-violet-400'
+    case 'Sudo':        return 'bg-red-500/10 text-red-400'
+    default:            return 'bg-awz-border text-awz-muted'
+  }
+}
+
+function truncHash(hash: string, head = 10, tail = 6): string {
+  if (!hash || hash.length < head + tail + 3) return hash
+  return `${hash.slice(0, head)}…${hash.slice(-tail)}`
 }
 
 /* ── RIZ logo icon ───────────────────────────────────────────────── */
@@ -57,7 +79,7 @@ function RizIcon({ size = 18 }: { size?: number }) {
 /* ── Layout primitives ───────────────────────────────────────────── */
 function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-awz-surface border border-awz-border rounded-xl p-5 sm:p-6 flex flex-col gap-4 ${className}`}>
+    <div className={`bg-awz-surface border border-awz-border rounded-xl p-4 flex flex-col gap-3 ${className}`}>
       {children}
     </div>
   )
@@ -67,7 +89,7 @@ function CardHeader({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 pb-1 border-b border-awz-border">
       <span className="text-awz-gold">{icon}</span>
-      <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.18em] text-awz-muted">
+      <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-awz-muted">
         {title}
       </span>
     </div>
@@ -76,14 +98,14 @@ function CardHeader({ icon, title }: { icon: ReactNode; title: string }) {
 
 function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <span className="text-awz-muted/70">{icon}</span>
-        <span className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-awz-muted">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">
           {label}
         </span>
       </div>
-      <div className="font-mono font-semibold text-awz-text text-xl sm:text-2xl leading-none">
+      <div className="font-mono font-semibold text-awz-text text-base sm:text-lg leading-none">
         {children}
       </div>
     </div>
@@ -103,31 +125,34 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
   return (
     <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-awz-border">
-        <RiStackLine size={16} className="text-awz-gold" />
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-awz-muted">
+        <RiStackLine size={26} className="text-awz-gold" />
+        <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
           Recent Blocks
         </span>
         <span className="ml-auto"><LiveDot /></span>
       </div>
-      <div className="overflow-y-auto max-h-72 divide-y divide-awz-border">
+      <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
         {blocks.length === 0 ? (
-          <div className="px-4 py-6 text-center text-awz-muted text-xs font-mono">
+          <div className="px-4 py-8 text-center text-awz-muted text-sm font-mono">
             Waiting for first block…
           </div>
         ) : (
           blocks.map((b) => (
-            <div key={b.number} className="flex items-center gap-3 px-4 py-2.5">
-              <TbCube size={14} className="text-awz-gold flex-shrink-0" />
-              <span className="font-mono text-sm font-semibold text-awz-text min-w-[56px]">
+            <div key={b.number} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-bg/30 transition-colors">
+              <TbCube size={24} className="text-awz-gold flex-shrink-0" />
+              <Link
+                to={`/block/${b.number}`}
+                className="font-mono text-base font-bold text-awz-text hover:text-awz-gold transition-colors min-w-[76px] flex-shrink-0"
+              >
                 #{b.number.toLocaleString()}
-              </span>
-              <span className="font-mono text-xs text-awz-muted flex-1 truncate">
+              </Link>
+              <span className="font-mono text-sm text-awz-muted flex-1 truncate hidden sm:block">
                 {truncHash(b.hash)}
               </span>
-              <span className="font-mono text-xs text-awz-muted flex-shrink-0">
+              <span className="font-mono text-sm text-awz-muted flex-shrink-0">
                 {b.extrinsicCount} tx
               </span>
-              <span className="font-mono text-xs text-awz-muted/60 flex-shrink-0">
+              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-16 text-right">
                 {timeAgo(b.timestamp)}
               </span>
             </div>
@@ -143,39 +168,51 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
   return (
     <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-awz-border">
-        <RiExchangeLine size={16} className="text-awz-gold" />
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-awz-muted">
+        <RiExchangeLine size={26} className="text-awz-gold" />
+        <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
           Recent Transactions
         </span>
         <span className="ml-auto"><LiveDot /></span>
       </div>
-      <div className="overflow-y-auto max-h-72 divide-y divide-awz-border">
+      <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
         {txs.length === 0 ? (
-          <div className="px-4 py-6 text-center text-awz-muted text-xs font-mono">
+          <div className="px-4 py-8 text-center text-awz-muted text-sm font-mono">
             Waiting for first block…
           </div>
         ) : (
           txs.map((tx, i) => (
-            <div key={`${tx.blockNumber}-${tx.index}-${i}`} className="flex items-center gap-2 px-4 py-2.5 min-w-0">
+            <div key={`${tx.blockNumber}-${tx.index}-${i}`} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-bg/30 transition-colors min-w-0">
               {tx.isSigned
-                ? <TbArrowsExchange size={14} className="text-awz-gold flex-shrink-0" />
-                : <TbBolt size={14} className="text-awz-muted/60 flex-shrink-0" />
+                ? <TbArrowsExchange size={24} className="text-awz-gold flex-shrink-0" />
+                : <TbBolt size={24} className="text-awz-muted/50 flex-shrink-0" />
               }
-              <span className="font-mono text-xs text-awz-text font-medium truncate flex-1 min-w-0">
-                {tx.section}.{tx.method}
+              {/* hash + call stacked */}
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <Link
+                  to={`/tx/${tx.blockNumber}/${tx.index}`}
+                  className="font-mono text-sm text-awz-green hover:underline truncate"
+                >
+                  {truncHash(tx.hash)}
+                </Link>
+                <span className="font-mono text-xs text-awz-muted truncate">
+                  {tx.section}.{tx.method}
+                </span>
+              </div>
+              {/* type badge */}
+              <span className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide flex-shrink-0 ${typeColor(tx.type)}`}>
+                {tx.type}
               </span>
-              <span className="font-mono text-xs text-awz-muted flex-shrink-0">
-                #{tx.blockNumber}
-              </span>
-              <span className="font-mono text-xs text-awz-muted/60 flex-shrink-0">
+              {/* block number */}
+              <Link
+                to={`/block/${tx.blockNumber}`}
+                className="font-mono text-sm text-awz-gold hover:underline flex-shrink-0"
+              >
+                #{tx.blockNumber.toLocaleString()}
+              </Link>
+              {/* time */}
+              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-16 text-right">
                 {timeAgo(tx.timestamp)}
               </span>
-              {tx.isSigned && (
-                <span className="flex items-center gap-0.5 text-awz-gold text-[10px] font-mono flex-shrink-0">
-                  <TbCircleCheck size={11} />
-                  SIGNED
-                </span>
-              )}
             </div>
           ))
         )}
@@ -203,131 +240,140 @@ export function Overview() {
     return () => { mounted = false }
   }, [])
 
+  // Force re-render every 5 s so timeAgo values tick forward.
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(n => n + 1), 5000)
+    return () => clearInterval(id)
+  }, [])
+
   /* ── derived ────────────────────────────────────────────────── */
   const epochCountdown  = latestBlockNumber > 0 ? calcEpochCountdown(latestBlockNumber) : '———'
   const tpsStr          = latestBlockNumber > 0 ? tps.toFixed(2) : null
 
-  const supplyStr      = totalIssuance !== null    ? formatRizComma(totalIssuance)                  : '———'
-  const stakedStr      = stats !== undefined        ? formatRizStr(stats.total_staked)               : '———'
-  const epochStr       = stats !== undefined        ? stats.current_epoch.toLocaleString()           : '———'
-  const validatorStr   = validatorCount !== undefined ? Number(validatorCount).toLocaleString()      : '———'
-  const blockHeightStr = latestBlockNumber > 0      ? `#${latestBlockNumber.toLocaleString()}`       : '———'
-  const totalExtStr    = stats !== undefined        ? stats.total_extrinsics.toLocaleString()        : '———'
-  const deliveriesStr  = stats !== undefined        ? stats.total_deliveries.toLocaleString()        : '———'
-  const walletsStr     = stats !== undefined        ? stats.total_wallets.toLocaleString()           : '———'
-  const campaignsStr   = stats !== undefined        ? stats.active_campaigns.toLocaleString()        : '———'
-  const inboxStr       = stats !== undefined        ? formatRizStr(stats.inbox_reserve_balance, 2)   : '———'
+  const supplyStr      = totalIssuance !== null             ? formatRizComma(totalIssuance)                  : '———'
+  const stakedStr      = stats?.total_staked          != null ? formatRizStr(stats.total_staked)               : '———'
+  const epochStr       = stats?.current_epoch         != null ? stats.current_epoch.toLocaleString()           : '———'
+  const validatorStr   = validatorCount               != null ? Number(validatorCount).toLocaleString()        : '———'
+  const blockHeightStr = latestBlockNumber > 0                ? `#${latestBlockNumber.toLocaleString()}`       : '———'
+  const totalExtStr    = stats?.total_extrinsics      != null ? stats.total_extrinsics.toLocaleString()        : '———'
+  const deliveriesStr  = stats?.total_deliveries      != null ? stats.total_deliveries.toLocaleString()        : '———'
+  const walletsStr     = stats?.total_wallets         != null ? stats.total_wallets.toLocaleString()           : '———'
+  const campaignsStr   = stats?.active_campaigns      != null ? stats.active_campaigns.toLocaleString()        : '———'
+  const inboxStr       = stats?.inbox_reserve_balance != null ? formatRizStr(stats.inbox_reserve_balance, 2)   : '———'
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
 
-      {/* ── CARD 1 — RIZ SUPPLY ──────────────────────────────────── */}
-      <Card>
-        <CardHeader icon={<Coins size={18} />} title="RIZ_SUPPLY" />
+      {/* ── 4-col card grid ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
-        <Row icon={<RizIcon size={13} />} label="Total Supply">
-          {supplyStr}
-          <span className="text-awz-muted text-sm font-normal ml-1.5">RIZ</span>
-        </Row>
+        {/* CARD 1 — RIZ SUPPLY */}
+        <Card>
+          <CardHeader icon={<Coins size={30} strokeWidth={2.5} />} title="RIZ_SUPPLY" />
 
-        <Divider />
+          <Row icon={<RizIcon size={22} />} label="Total Supply">
+            {supplyStr}
+            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
+          </Row>
 
-        <Row icon={<Lock size={13} />} label="Staked">
-          {stakedStr}
-          <span className="text-awz-muted text-sm font-normal ml-1.5">RIZ</span>
-        </Row>
-      </Card>
+          <Divider />
 
-      {/* ── CARD 2 — EPOCH STATUS ────────────────────────────────── */}
-      <Card>
-        <CardHeader icon={<Timer size={18} />} title="EPOCH_STATUS" />
+          <Row icon={<Lock size={22} strokeWidth={2.5} />} label="Staked">
+            {stakedStr}
+            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
+          </Row>
+        </Card>
 
-        <Row icon={<RefreshCw size={13} />} label="Current Epoch">
-          {epochStr}
-        </Row>
+        {/* CARD 2 — EPOCH STATUS */}
+        <Card>
+          <CardHeader icon={<Timer size={30} strokeWidth={2.5} />} title="EPOCH_STATUS" />
 
-        <Divider />
+          <Row icon={<RefreshCw size={22} strokeWidth={2.5} />} label="Current Epoch">
+            {epochStr}
+          </Row>
 
-        <Row icon={<Clock size={13} />} label="Next Epoch In">
-          {epochCountdown}
-        </Row>
+          <Divider />
 
-        <Divider />
+          <Row icon={<Clock size={22} strokeWidth={2.5} />} label="Next Epoch In">
+            {epochCountdown}
+          </Row>
 
-        <Row icon={<Shield size={13} />} label="Active Validators">
-          {validatorStr}
-        </Row>
-      </Card>
+          <Divider />
 
-      {/* ── CARD 3 — BLOCK ACTIVITY ──────────────────────────────── */}
-      <Card>
-        <CardHeader icon={<Box size={18} />} title="BLOCK_ACTIVITY" />
+          <Row icon={<Shield size={22} strokeWidth={2.5} />} label="Active Validators">
+            {validatorStr}
+          </Row>
+        </Card>
 
-        <Row icon={<Box size={13} />} label="Block Height">
-          {blockHeightStr}
-        </Row>
+        {/* CARD 3 — BLOCK ACTIVITY */}
+        <Card>
+          <CardHeader icon={<Box size={30} strokeWidth={2.5} />} title="BLOCK_ACTIVITY" />
 
-        <Divider />
+          <Row icon={<Box size={22} strokeWidth={2.5} />} label="Block Height">
+            {blockHeightStr}
+          </Row>
 
-        <Row icon={<ArrowLeftRight size={13} />} label="Total Transactions">
-          {totalExtStr}
-        </Row>
+          <Divider />
 
-        <Divider />
+          <Row icon={<ArrowLeftRight size={22} strokeWidth={2.5} />} label="Total Transactions">
+            {totalExtStr}
+          </Row>
 
-        <Row icon={<Inbox size={13} />} label="Deliveries">
-          {deliveriesStr}
-        </Row>
+          <Divider />
 
-        <Divider />
+          <Row icon={<Inbox size={22} strokeWidth={2.5} />} label="Deliveries">
+            {deliveriesStr}
+          </Row>
 
-        {/* TPS with sub-note */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <Zap size={13} className="text-awz-muted/70" />
-            <span className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-awz-muted">
-              Est. TPS
-            </span>
+          <Divider />
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Zap size={22} strokeWidth={2.5} className="text-awz-muted/70" />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">Est. TPS</span>
+            </div>
+            <div className="font-mono font-semibold text-awz-text text-base sm:text-lg leading-none">
+              {tpsStr !== null ? `${tpsStr} tx/s` : '———'}
+            </div>
+            <div className="text-[10px] font-mono text-awz-muted tracking-wider">BLOCK TIME 3s</div>
           </div>
-          <div className="font-mono font-semibold text-awz-text text-xl sm:text-2xl leading-none">
-            {tpsStr !== null ? `${tpsStr} tx/s` : '———'}
-          </div>
-          <div className="text-[10px] font-mono text-awz-muted tracking-wider">BLOCK TIME 3s</div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* ── CARD 4 — NETWORK PARTICIPANTS ────────────────────────── */}
-      <Card>
-        <CardHeader icon={<Users size={18} />} title="NETWORK_PARTICIPANTS" />
+        {/* CARD 4 — NETWORK PARTICIPANTS */}
+        <Card>
+          <CardHeader icon={<Users size={30} strokeWidth={2.5} />} title="PARTICIPANTS" />
 
-        <Row icon={<Wallet size={13} />} label="Total Wallets">
-          {walletsStr}
-        </Row>
+          <Row icon={<Wallet size={22} strokeWidth={2.5} />} label="Total Wallets">
+            {walletsStr}
+          </Row>
 
-        <Divider />
+          <Divider />
 
-        <Row icon={<Megaphone size={13} />} label="Active Campaigns">
-          {campaignsStr}
-        </Row>
+          <Row icon={<Megaphone size={22} strokeWidth={2.5} />} label="Active Campaigns">
+            {campaignsStr}
+          </Row>
 
-        <Divider />
+          <Divider />
 
-        <Row icon={<Send size={13} />} label="Total Deliveries">
-          {deliveriesStr}
-        </Row>
+          <Row icon={<Send size={22} strokeWidth={2.5} />} label="Total Deliveries">
+            {deliveriesStr}
+          </Row>
 
-        <Divider />
+          <Divider />
 
-        <Row icon={<PiggyBank size={13} />} label="Inbox Reserve">
-          {inboxStr}
-          <span className="text-awz-muted text-sm font-normal ml-1.5">RIZ</span>
-        </Row>
-      </Card>
+          <Row icon={<PiggyBank size={22} strokeWidth={2.5} />} label="Inbox Reserve">
+            {inboxStr}
+            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
+          </Row>
+        </Card>
+
+      </div>
 
       {/* ── RECENT ACTIVITY ──────────────────────────────────────── */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.18em] text-awz-muted">
+          <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
             Recent Activity
           </span>
           <LiveDot />

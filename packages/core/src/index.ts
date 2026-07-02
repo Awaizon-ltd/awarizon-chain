@@ -21,6 +21,11 @@ export type {
   NFTItem,
   ValidatorInfo,
   NetworkStats,
+  IdentityRecord,
+  NameLookup,
+  LinkedAddress,
+  ChainType,
+  LinkStatus,
   TargetingOptions,
 } from './types'
 

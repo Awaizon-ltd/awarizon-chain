@@ -26,6 +26,11 @@ export type {
   ValidatorPerformanceResponse,
   TokenStats,
   VestingSchedule,
+  ChainType,
+  LinkStatus,
+  LinkedAddress,
+  IdentityRecord,
+  NameLookup,
 } from './types'
 
 // Constants
@@ -92,6 +97,11 @@ export {
   getRecentTransactions,
   getBlockTransactions,
   getVestingSchedule,
+  getIdentity,
+  lookupName,
+  getLinkedAddresses,
+  isNameAvailable,
+  getTotalIdentities,
 } from './rpc'
 
 // Extrinsics

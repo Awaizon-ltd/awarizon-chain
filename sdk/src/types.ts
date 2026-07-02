@@ -209,3 +209,46 @@ export interface ValidatorPerformance {
   effective_stake: bigint     // u128
   delegated_stake: bigint     // u128
 }
+
+// ----------------------------------------------------------------
+// Identity / Links types (pallets/awarizon-identity, awarizon-links)
+// ----------------------------------------------------------------
+
+export type ChainType =
+  | 'EVM'
+  | 'Solana'
+  | 'Bitcoin'
+  | 'Cosmos'
+  | 'Near'
+
+export type LinkStatus =
+  | 'Pending'
+  | 'Verified'
+  | 'Revoked'
+
+export interface LinkedAddress {
+  chain: ChainType
+  address: string        // display string e.g. "0x..." or "Sol:..."
+  status: LinkStatus
+  linkedAt: number       // BlockNumber
+}
+
+export interface IdentityRecord {
+  account: string              // SS58
+  rizName: string | null       // "harry" (without .riz suffix)
+  rizNameFull: string | null   // "harry.riz" (with suffix)
+  displayName: string | null
+  bio: string | null
+  avatarUri: string | null
+  website: string | null
+  registeredAt: number         // BlockNumber
+  verified: boolean
+  reputationScore: number      // 0–10000
+  linkedAddresses: LinkedAddress[]
+}
+
+export interface NameLookup {
+  rizName: string              // without suffix
+  account: string              // SS58
+  identity: IdentityRecord | null
+}

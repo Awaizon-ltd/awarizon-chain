@@ -10,6 +10,8 @@ import { CampaignsModule } from './modules/campaigns'
 import { AssetsModule } from './modules/assets'
 import { NFTsModule } from './modules/nfts'
 import { ValidatorsModule } from './modules/validators'
+import { IdentityModule } from './modules/identity'
+import { LinksModule } from './modules/links'
 
 export interface CoreConfig {
   endpoint: string
@@ -29,6 +31,8 @@ export class AwarizonCore {
   assets!: AssetsModule
   nfts!: NFTsModule
   validators!: ValidatorsModule
+  identity!: IdentityModule
+  links!: LinksModule
 
   constructor(private config: CoreConfig) {
     this.keyring = new AwarizonKeyring()
@@ -50,6 +54,8 @@ export class AwarizonCore {
     this.assets = new AssetsModule(this.api)
     this.nfts = new NFTsModule(this.api)
     this.validators = new ValidatorsModule(this.api)
+    this.identity = new IdentityModule(this.api)
+    this.links = new LinksModule(this.api)
 
     return this
   }

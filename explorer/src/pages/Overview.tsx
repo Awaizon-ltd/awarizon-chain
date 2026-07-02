@@ -165,10 +165,10 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
           <thead>
             <tr className="bg-awz-bg/40">
               <th className="px-5 py-2 text-left w-6" />
-              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Block #</th>
-              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Hash</th>
-              <th className="px-2 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-14">Txns</th>
-              <th className="px-5 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-16">Age</th>
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Block #</th>
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Hash</th>
+              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-14">Txns</th>
+              <th className="px-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-16">Age</th>
             </tr>
           </thead>
           <tbody>
@@ -228,10 +228,10 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
           <thead>
             <tr className="bg-awz-bg/40">
               <th className="px-5 py-2 text-left w-6" />
-              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Hash / Call</th>
-              <th className="px-2 py-2 text-center text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-[76px]">Type</th>
-              <th className="px-2 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-[60px]">Block</th>
-              <th className="px-5 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-16">Age</th>
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Hash / Call</th>
+              <th className="px-2 py-2 text-center text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[76px]">Type</th>
+              <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[60px]">Block</th>
+              <th className="px-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-16">Age</th>
             </tr>
           </thead>
           <tbody>

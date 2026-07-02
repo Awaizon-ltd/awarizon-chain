@@ -77,6 +77,35 @@ pub struct TokenStats {
     pub total_issuance: String,
     pub engagement_pool_balance: String,
 }
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct LinkedAddressResponse {
+    pub chain: String,
+    pub address: String,
+    pub status: String,
+    pub linked_at: u32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct IdentityResponse {
+    pub account: String,
+    pub riz_name: Option<String>,
+    pub display_name: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_uri: Option<String>,
+    pub website: Option<String>,
+    pub registered_at: u32,
+    pub verified: bool,
+    pub reputation_score: u32,
+    pub linked_addresses: Vec<LinkedAddressResponse>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct NameLookupResponse {
+    pub riz_name: String,
+    pub account: String,
+    pub identity: Option<IdentityResponse>,
+}
+
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct TransactionSummary {
@@ -261,6 +290,42 @@ pub trait AwarizonRpc {
 
     #[method(name = "awarizon_getBlockTransactions")]
     async fn get_block_transactions(&self, block_number: u32) -> RpcResult<Vec<TransactionSummary>>;
+
+    // Identity endpoints
+    #[method(name = "awarizon_getIdentity")]
+    async fn get_identity(
+        &self,
+        account: String,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<Option<IdentityResponse>>;
+
+    #[method(name = "awarizon_lookupName")]
+    async fn lookup_name(
+        &self,
+        name: String,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<Option<NameLookupResponse>>;
+
+    #[method(name = "awarizon_getLinkedAddresses")]
+    async fn get_linked_addresses(
+        &self,
+        account: String,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<Vec<LinkedAddressResponse>>;
+
+    #[method(name = "awarizon_isNameAvailable")]
+    async fn is_name_available(
+        &self,
+        name: String,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<bool>;
+
+    #[method(name = "awarizon_getTotalIdentities")]
+    async fn get_total_identities(
+        &self,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<u32>;
+
 }
 
 // ============================================================
@@ -315,6 +380,90 @@ where
             None => Ok(0),
         }
     }
+
+    fn fetch_linked_addresses(
+        &self,
+        acct: &AccountId32,
+    ) -> RpcResult<Vec<LinkedAddressResponse>> {
+        // ChainType SCALE encoding: EVM=0, Solana=1, Bitcoin=2, Cosmos=3, Near=4
+        let chain_variants: &[(&str, u8)] = &[
+            ("EVM", 0),
+            ("Solana", 1),
+            ("Bitcoin", 2),
+            ("Cosmos", 3),
+            ("Near", 4),
+        ];
+
+        let mut results = Vec::new();
+        for (chain_name, chain_id) in chain_variants {
+            let key = double_map_key_b2(
+                "AwarizonLinks",
+                "LinkedAddresses",
+                &acct.encode(),
+                &[*chain_id],
+            );
+            if let Some(raw) = self.read_raw(key)? {
+                let mut c = raw.as_slice();
+                // skip ChainType byte
+                if !c.is_empty() { c = &c[1..]; }
+                let _address_bytes = Self::scale_decode_bvec(&mut c);
+                let display_bytes = Self::scale_decode_bvec(&mut c);
+                // skip LinkStatus byte
+                if !c.is_empty() { c = &c[1..]; }
+                let linked_at = if c.len() >= 4 {
+                    u32::from_le_bytes(c[..4].try_into().unwrap_or([0u8; 4]))
+                } else {
+                    0
+                };
+                results.push(LinkedAddressResponse {
+                    chain: chain_name.to_string(),
+                    address: String::from_utf8_lossy(&display_bytes).into_owned(),
+                    status: "Verified".to_string(),
+                    linked_at,
+                });
+            }
+        }
+        Ok(results)
+    }
+
+    fn scale_decode_option_bvec(cursor: &mut &[u8]) -> Option<Vec<u8>> {
+        if cursor.is_empty() { return None; }
+        let tag = cursor[0];
+        *cursor = &cursor[1..];
+        if tag == 0 { None } else { Some(Self::scale_decode_bvec(cursor)) }
+    }
+
+    fn scale_decode_bvec(cursor: &mut &[u8]) -> Vec<u8> {
+        if cursor.is_empty() { return Vec::new(); }
+        let (len, consumed) = Self::scale_compact(cursor);
+        *cursor = &cursor[consumed..];
+        let take = len.min(cursor.len());
+        let bytes = cursor[..take].to_vec();
+        *cursor = &cursor[take..];
+        bytes
+    }
+
+    fn scale_compact(data: &[u8]) -> (usize, usize) {
+        if data.is_empty() { return (0, 0); }
+        match data[0] & 0b11 {
+            0 => ((data[0] >> 2) as usize, 1),
+            1 => {
+                if data.len() < 2 { return (0, 1); }
+                (((data[0] as usize) | ((data[1] as usize) << 8)) >> 2, 2)
+            }
+            2 => {
+                if data.len() < 4 { return (0, 1); }
+                ((((data[0] as usize)
+                    | ((data[1] as usize) << 8)
+                    | ((data[2] as usize) << 16)
+                    | ((data[3] as usize) << 24))
+                    >> 2),
+                 4)
+            }
+            _ => (0, 1),
+        }
+    }
+
 }
 
 // ============================================================
@@ -660,6 +809,133 @@ where
                     .collect())
             }
         }
+    }
+
+    async fn get_identity(
+        &self,
+        account: String,
+        _at: Option<sp_core::H256>,
+    ) -> RpcResult<Option<IdentityResponse>> {
+        let acct = parse_account(&account)?;
+        let enc = acct.encode();
+
+        let id_key = map_key_b2("AwarizonIdentity", "IdentityRecords", &enc);
+        let id_raw = match self.read_raw(id_key)? {
+            None => return Ok(None),
+            Some(b) => b,
+        };
+
+        let mut c = id_raw.as_slice();
+        let riz_name = Self::scale_decode_option_bvec(&mut c);
+        let display_name = Self::scale_decode_option_bvec(&mut c);
+        let bio = Self::scale_decode_option_bvec(&mut c);
+        let avatar_uri = Self::scale_decode_option_bvec(&mut c);
+        let website = Self::scale_decode_option_bvec(&mut c);
+        let registered_at = if c.len() >= 4 {
+            let v = u32::from_le_bytes(c[..4].try_into().unwrap_or([0u8; 4]));
+            c = &c[4..];
+            v
+        } else {
+            0
+        };
+        let verified = c.first().copied().unwrap_or(0) != 0;
+        if !c.is_empty() { c = &c[1..]; }
+        let reputation_score = if c.len() >= 4 {
+            u32::from_le_bytes(c[..4].try_into().unwrap_or([0u8; 4]))
+        } else {
+            0
+        };
+
+        let linked = self.fetch_linked_addresses(&acct)?;
+
+        Ok(Some(IdentityResponse {
+            account,
+            riz_name: riz_name.map(|b| String::from_utf8_lossy(&b).into_owned()),
+            display_name: display_name.map(|b| String::from_utf8_lossy(&b).into_owned()),
+            bio: bio.map(|b| String::from_utf8_lossy(&b).into_owned()),
+            avatar_uri: avatar_uri.map(|b| String::from_utf8_lossy(&b).into_owned()),
+            website: website.map(|b| String::from_utf8_lossy(&b).into_owned()),
+            registered_at,
+            verified,
+            reputation_score,
+            linked_addresses: linked,
+        }))
+    }
+
+    async fn lookup_name(
+        &self,
+        name: String,
+        at: Option<sp_core::H256>,
+    ) -> RpcResult<Option<NameLookupResponse>> {
+        let clean = name.trim_end_matches(".riz").to_string();
+        let name_bytes = clean.as_bytes();
+
+        // SCALE-encode as BoundedVec<u8,32>: compact(len) + bytes
+        let (compact_byte, compact_extra) = if name_bytes.len() < 64 {
+            (((name_bytes.len() as u8) << 2), None)
+        } else {
+            let v = (name_bytes.len() as u16) << 2 | 1;
+            (v as u8, Some((v >> 8) as u8))
+        };
+        let mut encoded = vec![compact_byte];
+        if let Some(extra) = compact_extra { encoded.push(extra); }
+        encoded.extend_from_slice(name_bytes);
+
+        let key = map_key_b2("AwarizonIdentity", "RizNameRegistry", &encoded);
+        let owner_raw = match self.read_raw(key)? {
+            None => return Ok(None),
+            Some(b) => b,
+        };
+
+        let owner = AccountId32::decode(&mut &owner_raw[..])
+            .map_err(|e| runtime_error(&e.to_string()))?;
+        let owner_ss58 = owner.to_ss58check();
+
+        let identity = self.get_identity(owner_ss58.clone(), at).await?;
+
+        Ok(Some(NameLookupResponse {
+            riz_name: clean,
+            account: owner_ss58,
+            identity,
+        }))
+    }
+
+    async fn get_linked_addresses(
+        &self,
+        account: String,
+        _at: Option<sp_core::H256>,
+    ) -> RpcResult<Vec<LinkedAddressResponse>> {
+        let acct = parse_account(&account)?;
+        self.fetch_linked_addresses(&acct)
+    }
+
+    async fn is_name_available(
+        &self,
+        name: String,
+        _at: Option<sp_core::H256>,
+    ) -> RpcResult<bool> {
+        let clean = name.trim_end_matches(".riz");
+        let name_bytes = clean.as_bytes();
+
+        let (compact_byte, compact_extra) = if name_bytes.len() < 64 {
+            (((name_bytes.len() as u8) << 2), None)
+        } else {
+            let v = (name_bytes.len() as u16) << 2 | 1;
+            (v as u8, Some((v >> 8) as u8))
+        };
+        let mut encoded = vec![compact_byte];
+        if let Some(extra) = compact_extra { encoded.push(extra); }
+        encoded.extend_from_slice(name_bytes);
+
+        let key = map_key_b2("AwarizonIdentity", "RizNameRegistry", &encoded);
+        Ok(self.read_raw(key)?.is_none())
+    }
+
+    async fn get_total_identities(
+        &self,
+        _at: Option<sp_core::H256>,
+    ) -> RpcResult<u32> {
+        self.read_u32_value("AwarizonIdentity", "TotalIdentities")
     }
 }
 

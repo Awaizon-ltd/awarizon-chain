@@ -13,6 +13,9 @@ import type {
   InboxRecord,
   TransactionSummary,
   VestingSchedule,
+  IdentityRecord,
+  NameLookup,
+  LinkedAddress,
 } from './types'
 
 // ----------------------------------------------------------------
@@ -214,4 +217,78 @@ export async function getVestingSchedule(
     per_block: String(v.perBlock ?? v.per_block ?? '0'),
     starting_block: Number(v.startingBlock ?? v.starting_block ?? 0),
   }))
+}
+
+// ----------------------------------------------------------------
+// Identity endpoints
+// ----------------------------------------------------------------
+
+export async function getIdentity(
+  api: ApiPromise,
+  account: string
+): Promise<IdentityRecord | null> {
+  const result = await (api.rpc as any).awarizon.getIdentity(account, null)
+  const json = result.toJSON()
+  if (!json) return null
+  return {
+    account: json.account,
+    rizName: json.riz_name ?? null,
+    rizNameFull: json.riz_name ? json.riz_name + '.riz' : null,
+    displayName: json.display_name ?? null,
+    bio: json.bio ?? null,
+    avatarUri: json.avatar_uri ?? null,
+    website: json.website ?? null,
+    registeredAt: Number(json.registered_at ?? 0),
+    verified: Boolean(json.verified),
+    reputationScore: Number(json.reputation_score ?? 0),
+    linkedAddresses: (json.linked_addresses ?? []).map((la: any) => ({
+      chain: la.chain as string,
+      address: la.address as string,
+      status: la.status as string,
+      linkedAt: Number(la.linked_at ?? 0),
+    })),
+  }
+}
+
+export async function lookupName(
+  api: ApiPromise,
+  name: string
+): Promise<NameLookup | null> {
+  const result = await (api.rpc as any).awarizon.lookupName(name, null)
+  const json = result.toJSON()
+  if (!json) return null
+  const identity = json.identity ? await getIdentity(api, json.account) : null
+  return {
+    rizName: json.riz_name as string,
+    account: json.account as string,
+    identity,
+  }
+}
+
+export async function getLinkedAddresses(
+  api: ApiPromise,
+  account: string
+): Promise<LinkedAddress[]> {
+  const result = await (api.rpc as any).awarizon.getLinkedAddresses(account, null)
+  const arr = result.toJSON() as any[]
+  if (!Array.isArray(arr)) return []
+  return arr.map((la: any) => ({
+    chain: la.chain as string,
+    address: la.address as string,
+    status: la.status as string,
+    linkedAt: Number(la.linked_at ?? 0),
+  }))
+}
+
+export async function isNameAvailable(
+  api: ApiPromise,
+  name: string
+): Promise<boolean> {
+  const result = await (api.rpc as any).awarizon.isNameAvailable(name, null)
+  return Boolean(result.toJSON())
+}
+
+export async function getTotalIdentities(api: ApiPromise): Promise<number> {
+  const result = await (api.rpc as any).awarizon.getTotalIdentities(null)
+  return result.toNumber()
 }

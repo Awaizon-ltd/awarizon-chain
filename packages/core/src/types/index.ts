@@ -141,3 +141,13 @@ export interface TargetingOptions {
   maxActivity?: number
   regions?: number[]    // region codes, empty = all
 }
+
+
+// Re-export identity types from @awarizon/sdk
+export type {
+  ChainType,
+  LinkStatus,
+  LinkedAddress,
+  IdentityRecord,
+  NameLookup,
+} from '@awarizon/sdk'

@@ -316,40 +316,47 @@ export function useLiveChainData() {
 
   useEffect(() => {
     let cleanup: (() => void) | null = null
+    // Tracks which block numbers have already been processed.
+    // Guards against React StrictMode double-invoking effects (which creates
+    // two active subscriptions) and against nodes that re-broadcast the same head.
+    const seen = new Set<number>()
     const recentCounts: number[] = []
 
     getClient()
       .then(async (client) => {
         cleanup = await client.subscribeNewBlocks((blockNumber: number, blockHash: string) => {
+          if (seen.has(blockNumber)) return   // already handled — skip
+          seen.add(blockNumber)
+
           void (async () => {
             try {
-              const signed = await (client.getApi().rpc.chain as any).getBlock(blockHash)
+              const api = client.getApi()
+              // Fetch block body and on-chain timestamp storage in parallel.
+              // api.query.timestamp.now.at(hash) reads storage directly —
+              // no codec ambiguity around Compact<u64>.
+              const [signed, tsRaw] = await Promise.all([
+                (api.rpc.chain as any).getBlock(blockHash),
+                (api.query as any).timestamp.now.at(blockHash),
+              ])
               const exts: any[] = Array.from(signed.block.extrinsics)
-
-              // Extract real block timestamp from the timestamp.set inherent (first extrinsic).
-              // args[0] is Compact<u64> milliseconds since Unix epoch.
-              const tsExt = exts.find((e: any) =>
-                e.method?.section === 'timestamp' && e.method?.method === 'set'
-              )
-              const blockTs: number = tsExt?.method?.args?.[0]?.toNumber?.() ?? Date.now()
+              const blockTs: number = tsRaw ? Number(tsRaw.toString()) : Date.now()
 
               recentCounts.push(exts.length)
               if (recentCounts.length > 10) recentCounts.shift()
               const newTps = recentCounts.reduce((s: number, n: number) => s + n, 0) / 30
 
-              // Exclude inherents (unsigned, section === 'timestamp' | 'parachainSystem' etc.)
-              // from the user-facing transaction list.
+              // Exclude inherents from the user-facing tx list.
               const userExts = exts.filter((e: any) => {
                 const s: string = e.method?.section ?? ''
                 return s !== 'timestamp' && s !== 'parachainSystem'
               })
 
-              const newTxs: TxInfo[] = userExts.map((ext: any, i: number) => {
+              const newTxs: TxInfo[] = userExts.map((ext: any) => {
                 const section: string = ext.method?.section ?? 'unknown'
                 const method: string  = ext.method?.method  ?? 'unknown'
                 return {
                   blockNumber,
-                  index: exts.indexOf(ext), // original index within block
+                  index: exts.indexOf(ext),
                   hash: ext.hash?.toHex?.() ?? '0x',
                   section,
                   method,
@@ -361,9 +368,15 @@ export function useLiveChainData() {
 
               setLatestBlockNumber(blockNumber)
               setTps(newTps)
-              setBlocks(prev =>
-                [{ number: blockNumber, hash: blockHash, timestamp: blockTs, extrinsicCount: userExts.length }, ...prev].slice(0, 20)
-              )
+              setBlocks(prev => {
+                // Safety dedup: if this block number snuck in before the seen
+                // guard fired (async gap), don't add it twice.
+                if (prev.some(b => b.number === blockNumber)) return prev
+                return [
+                  { number: blockNumber, hash: blockHash, timestamp: blockTs, extrinsicCount: userExts.length },
+                  ...prev,
+                ].slice(0, 20)
+              })
               setTxs(prev => [...newTxs, ...prev].slice(0, 50))
             } catch {
               // ignore errors on individual blocks

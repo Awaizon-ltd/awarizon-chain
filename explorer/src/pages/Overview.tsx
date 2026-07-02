@@ -121,39 +121,61 @@ function LiveDot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-awz-gold inline-block animate-pulse flex-shrink-0" />
 }
 
+/* ── Column header row ───────────────────────────────────────────── */
+function ColHead({ children }: { children: ReactNode }) {
+  return (
+    <span className="text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 select-none">
+      {children}
+    </span>
+  )
+}
+
 /* ── Recent Blocks panel ─────────────────────────────────────────── */
 function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-awz-border">
-        <RiStackLine size={26} className="text-awz-gold" />
-        <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
-          Recent Blocks
-        </span>
+    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col overflow-hidden">
+      {/* panel title */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-awz-border">
+        <RiStackLine size={22} className="text-awz-gold flex-shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-sm font-mono font-semibold text-awz-text">Latest Blocks</span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">
+            Live · 3s block time
+          </span>
+        </div>
         <span className="ml-auto"><LiveDot /></span>
       </div>
+      {/* column headers */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-awz-bg/40 border-b border-awz-border">
+        <span className="w-5 flex-shrink-0" />
+        <ColHead><span className="w-[72px] inline-block">Block #</span></ColHead>
+        <ColHead><span className="flex-1">Hash</span></ColHead>
+        <ColHead><span className="w-10 inline-block text-right">Txns</span></ColHead>
+        <ColHead><span className="w-14 inline-block text-right">Age</span></ColHead>
+      </div>
+      {/* rows */}
       <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
         {blocks.length === 0 ? (
-          <div className="px-4 py-8 text-center text-awz-muted text-sm font-mono">
-            Waiting for first block…
+          <div className="px-4 py-10 text-center text-awz-muted text-sm font-mono">
+            Connecting to chain…
           </div>
         ) : (
           blocks.map((b) => (
-            <div key={b.number} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-bg/30 transition-colors">
-              <TbCube size={24} className="text-awz-gold flex-shrink-0" />
+            <div key={b.number} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-gold/5 transition-colors">
+              <TbCube size={20} className="text-awz-gold flex-shrink-0 w-5" />
               <Link
                 to={`/block/${b.number}`}
-                className="font-mono text-base font-bold text-awz-text hover:text-awz-gold transition-colors min-w-[76px] flex-shrink-0"
+                className="font-mono text-sm font-bold text-awz-text hover:text-awz-gold transition-colors w-[72px] flex-shrink-0"
               >
                 #{b.number.toLocaleString()}
               </Link>
-              <span className="font-mono text-sm text-awz-muted flex-1 truncate hidden sm:block">
+              <span className="font-mono text-sm text-awz-muted flex-1 truncate min-w-0">
                 {truncHash(b.hash)}
               </span>
-              <span className="font-mono text-sm text-awz-muted flex-shrink-0">
-                {b.extrinsicCount} tx
+              <span className="font-mono text-sm text-awz-muted flex-shrink-0 w-10 text-right">
+                {b.extrinsicCount}
               </span>
-              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-16 text-right">
+              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-14 text-right">
                 {timeAgo(b.timestamp)}
               </span>
             </div>
@@ -167,25 +189,38 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
 /* ── Recent Transactions panel ───────────────────────────────────── */
 function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-awz-border">
-        <RiExchangeLine size={26} className="text-awz-gold" />
-        <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
-          Recent Transactions
-        </span>
+    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col overflow-hidden">
+      {/* panel title */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-awz-border">
+        <RiExchangeLine size={22} className="text-awz-gold flex-shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-sm font-mono font-semibold text-awz-text">Latest Transactions</span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">
+            User-submitted extrinsics
+          </span>
+        </div>
         <span className="ml-auto"><LiveDot /></span>
       </div>
+      {/* column headers */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-awz-bg/40 border-b border-awz-border">
+        <span className="w-5 flex-shrink-0" />
+        <ColHead><span className="flex-1">Hash / Call</span></ColHead>
+        <ColHead><span className="w-[72px] inline-block text-center">Type</span></ColHead>
+        <ColHead><span className="w-12 inline-block text-right">Block</span></ColHead>
+        <ColHead><span className="w-14 inline-block text-right">Age</span></ColHead>
+      </div>
+      {/* rows */}
       <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
         {txs.length === 0 ? (
-          <div className="px-4 py-8 text-center text-awz-muted text-sm font-mono">
-            Waiting for first block…
+          <div className="px-4 py-10 text-center text-awz-muted text-sm font-mono">
+            No user transactions yet — inherents excluded
           </div>
         ) : (
           txs.map((tx, i) => (
-            <div key={`${tx.blockNumber}-${tx.index}-${i}`} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-bg/30 transition-colors min-w-0">
+            <div key={`${tx.blockNumber}-${tx.index}-${i}`} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-gold/5 transition-colors">
               {tx.isSigned
-                ? <TbArrowsExchange size={24} className="text-awz-gold flex-shrink-0" />
-                : <TbBolt size={24} className="text-awz-muted/50 flex-shrink-0" />
+                ? <TbArrowsExchange size={20} className="text-awz-gold flex-shrink-0 w-5" />
+                : <TbBolt size={20} className="text-awz-muted/50 flex-shrink-0 w-5" />
               }
               {/* hash + call stacked */}
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -200,18 +235,18 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
                 </span>
               </div>
               {/* type badge */}
-              <span className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide flex-shrink-0 ${typeColor(tx.type)}`}>
+              <span className={`flex-shrink-0 w-[72px] inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide ${typeColor(tx.type)}`}>
                 {tx.type}
               </span>
-              {/* block number */}
+              {/* block */}
               <Link
                 to={`/block/${tx.blockNumber}`}
-                className="font-mono text-sm text-awz-gold hover:underline flex-shrink-0"
+                className="font-mono text-sm text-awz-gold hover:underline flex-shrink-0 w-12 text-right"
               >
                 #{tx.blockNumber.toLocaleString()}
               </Link>
-              {/* time */}
-              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-16 text-right">
+              {/* age */}
+              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-14 text-right">
                 {timeAgo(tx.timestamp)}
               </span>
             </div>

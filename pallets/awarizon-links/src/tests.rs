@@ -59,7 +59,7 @@ fn link_evm_address_with_valid_signature() {
             .expect("link must exist");
         assert_eq!(link.chain, ChainType::EVM);
         assert_eq!(link.status, pallet_awarizon_types::LinkStatus::Verified);
-        assert_eq!(link.address.as_ref(), &evm_address[..]);
+        assert_eq!(link.address.as_slice(), &evm_address[..]);
 
         assert_eq!(TotalVerifiedLinks::<Test>::get(), 1);
     });
@@ -159,8 +159,11 @@ fn link_solana_address_with_valid_signature() {
 #[test]
 fn link_solana_with_invalid_signature_fails() {
     new_test_ext().execute_with(|| {
-        let pubkey = [0u8; 32];
-        let bad_sig = [0u8; 64];
+        // Use a real ed25519 public key but deliberately wrong signature bytes
+        use sp_core::Pair;
+        let pair = sp_core::ed25519::Pair::from_seed(&[5u8; 32]);
+        let pubkey: [u8; 32] = pair.public().0;
+        let bad_sig = [0xab; 64]; // wrong signature for this key/message pair
         assert_noop!(
             AwarizonLinks::link_solana_address(
                 RuntimeOrigin::signed(1),

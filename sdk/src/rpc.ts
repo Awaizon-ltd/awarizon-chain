@@ -16,6 +16,8 @@ import type {
   IdentityRecord,
   NameLookup,
   LinkedAddress,
+  ChainType,
+  LinkStatus,
 } from './types'
 
 // ----------------------------------------------------------------
@@ -242,9 +244,9 @@ export async function getIdentity(
     verified: Boolean(json.verified),
     reputationScore: Number(json.reputation_score ?? 0),
     linkedAddresses: (json.linked_addresses ?? []).map((la: any) => ({
-      chain: la.chain as string,
+      chain: la.chain as ChainType,
       address: la.address as string,
-      status: la.status as string,
+      status: la.status as LinkStatus,
       linkedAt: Number(la.linked_at ?? 0),
     })),
   }
@@ -273,9 +275,9 @@ export async function getLinkedAddresses(
   const arr = result.toJSON() as any[]
   if (!Array.isArray(arr)) return []
   return arr.map((la: any) => ({
-    chain: la.chain as string,
+    chain: la.chain as ChainType,
     address: la.address as string,
-    status: la.status as string,
+    status: la.status as LinkStatus,
     linkedAt: Number(la.linked_at ?? 0),
   }))
 }

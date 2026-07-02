@@ -652,6 +652,112 @@ var ValidatorsModule = class {
   }
 };
 
+// src/modules/identity.ts
+import {
+  getIdentity,
+  isNameAvailable,
+  lookupName,
+  signAndSend as signAndSend9
+} from "@awarizon/sdk";
+var IdentityModule = class {
+  constructor(api) {
+    this.api = api;
+  }
+  async get(address) {
+    return getIdentity(this.api, address);
+  }
+  async lookup(name) {
+    return lookupName(this.api, name);
+  }
+  async isAvailable(name) {
+    return isNameAvailable(this.api, name);
+  }
+  async register(params) {
+    const ext = this.api.tx.awarizonIdentity.registerIdentity(
+      params.rizName ?? null,
+      params.displayName ?? null,
+      params.bio ?? null,
+      params.avatarUri ?? null,
+      params.website ?? null
+    );
+    const result = await signAndSend9(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async update(params) {
+    const ext = this.api.tx.awarizonIdentity.updateIdentity(
+      params.displayName ?? null,
+      params.bio ?? null,
+      params.avatarUri ?? null,
+      params.website ?? null
+    );
+    const result = await signAndSend9(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async recalculateReputation(params) {
+    const ext = this.api.tx.awarizonIdentity.recalculateReputation(params.account);
+    const result = await signAndSend9(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+};
+
+// src/modules/links.ts
+import { getLinkedAddresses, signAndSend as signAndSend10 } from "@awarizon/sdk";
+var LinksModule = class {
+  constructor(api) {
+    this.api = api;
+  }
+  buildEvmLinkMessage(awarizonAddress) {
+    return `Link to Awarizon: ${awarizonAddress}`;
+  }
+  buildSolanaLinkMessage(awarizonAddress) {
+    return `Link to Awarizon: ${awarizonAddress}`;
+  }
+  async linkEvm(params) {
+    const addrBytes = hexToBytes20(params.evmAddress);
+    const sigBytes = hexToBytes65(params.signature);
+    const ext = this.api.tx.awarizonLinks.linkEvmAddress(addrBytes, sigBytes);
+    const result = await signAndSend10(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async linkSolana(params) {
+    const pubkeyBytes = base58ToBytes32(params.solanaPubkey);
+    const sigBytes = base64ToBytes64(params.signature);
+    const ext = this.api.tx.awarizonLinks.linkSolanaAddress(pubkeyBytes, sigBytes);
+    const result = await signAndSend10(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async unlink(params) {
+    const ext = this.api.tx.awarizonLinks.unlinkAddress(params.chain);
+    const result = await signAndSend10(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async list(address) {
+    return getLinkedAddresses(this.api, address);
+  }
+};
+function hexToBytes20(hex) {
+  const clean = hex.replace(/^0x/i, "");
+  if (clean.length !== 40) throw new Error("EVM address must be 20 bytes (40 hex chars)");
+  return Uint8Array.from(Buffer.from(clean, "hex"));
+}
+function hexToBytes65(hex) {
+  const clean = hex.replace(/^0x/i, "");
+  if (clean.length !== 130) throw new Error("Signature must be 65 bytes (130 hex chars)");
+  return Uint8Array.from(Buffer.from(clean, "hex"));
+}
+function base58ToBytes32(b58) {
+  if (b58.startsWith("0x") || b58.startsWith("0X")) {
+    const clean = b58.slice(2);
+    return Uint8Array.from(Buffer.from(clean.padStart(64, "0"), "hex"));
+  }
+  throw new Error("Solana pubkey must be provided as 0x-prefixed hex (32 bytes)");
+}
+function base64ToBytes64(b64) {
+  const buf = Buffer.from(b64, "base64");
+  if (buf.length !== 64) throw new Error("Ed25519 signature must be 64 bytes");
+  return Uint8Array.from(buf);
+}
+
 // src/AwarizonCore.ts
 var AwarizonCore = class {
   constructor(config) {
@@ -674,6 +780,8 @@ var AwarizonCore = class {
     this.assets = new AssetsModule(this.api);
     this.nfts = new NFTsModule(this.api);
     this.validators = new ValidatorsModule(this.api);
+    this.identity = new IdentityModule(this.api);
+    this.links = new LinksModule(this.api);
     return this;
   }
   async disconnect() {

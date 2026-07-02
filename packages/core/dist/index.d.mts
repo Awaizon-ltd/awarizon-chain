@@ -1,7 +1,7 @@
 import { ApiPromise } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
-import { AppCategory } from '@awarizon/sdk';
-export { DEFAULT_ENDPOINT, MAX_CAMPAIGN_DURATION_DAYS, MICRO_RIZ, MIN_CAMPAIGN_DURATION_DAYS, MIN_INTERACTIONS, MIN_SESSION_SECONDS, PLANCK, RIZ } from '@awarizon/sdk';
+import { AppCategory, IdentityRecord, NameLookup, ChainType, LinkedAddress } from '@awarizon/sdk';
+export { ChainType, DEFAULT_ENDPOINT, IdentityRecord, LinkStatus, LinkedAddress, MAX_CAMPAIGN_DURATION_DAYS, MICRO_RIZ, MIN_CAMPAIGN_DURATION_DAYS, MIN_INTERACTIONS, MIN_SESSION_SECONDS, NameLookup, PLANCK, RIZ } from '@awarizon/sdk';
 
 interface TxResult {
     hash: string;
@@ -337,6 +337,55 @@ declare class ValidatorsModule {
     list(): Promise<ValidatorInfo[]>;
 }
 
+declare class IdentityModule {
+    private api;
+    constructor(api: ApiPromise);
+    get(address: string): Promise<IdentityRecord | null>;
+    lookup(name: string): Promise<NameLookup | null>;
+    isAvailable(name: string): Promise<boolean>;
+    register(params: {
+        rizName?: string;
+        displayName?: string;
+        bio?: string;
+        avatarUri?: string;
+        website?: string;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+    update(params: {
+        displayName?: string;
+        bio?: string;
+        avatarUri?: string;
+        website?: string;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+    recalculateReputation(params: {
+        account: string;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+}
+
+declare class LinksModule {
+    private api;
+    constructor(api: ApiPromise);
+    buildEvmLinkMessage(awarizonAddress: string): string;
+    buildSolanaLinkMessage(awarizonAddress: string): string;
+    linkEvm(params: {
+        evmAddress: string;
+        signature: string;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+    linkSolana(params: {
+        solanaPubkey: string;
+        signature: string;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+    unlink(params: {
+        chain: ChainType;
+        signer: KeyringPair;
+    }): Promise<TxResult>;
+    list(address: string): Promise<LinkedAddress[]>;
+}
+
 interface CoreConfig {
     endpoint: string;
 }
@@ -354,6 +403,8 @@ declare class AwarizonCore {
     assets: AssetsModule;
     nfts: NFTsModule;
     validators: ValidatorsModule;
+    identity: IdentityModule;
+    links: LinksModule;
     constructor(config: CoreConfig);
     connect(): Promise<this>;
     disconnect(): Promise<void>;

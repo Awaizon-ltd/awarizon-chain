@@ -22,14 +22,14 @@ var index_exports = {};
 __export(index_exports, {
   AwarizonCore: () => AwarizonCore,
   AwarizonKeyring: () => AwarizonKeyring,
-  DEFAULT_ENDPOINT: () => import_sdk12.DEFAULT_ENDPOINT,
-  MAX_CAMPAIGN_DURATION_DAYS: () => import_sdk12.MAX_CAMPAIGN_DURATION_DAYS,
-  MICRO_RIZ: () => import_sdk12.MICRO_RIZ,
-  MIN_CAMPAIGN_DURATION_DAYS: () => import_sdk12.MIN_CAMPAIGN_DURATION_DAYS,
-  MIN_INTERACTIONS: () => import_sdk12.MIN_INTERACTIONS,
-  MIN_SESSION_SECONDS: () => import_sdk12.MIN_SESSION_SECONDS,
-  PLANCK: () => import_sdk12.PLANCK,
-  RIZ: () => import_sdk12.RIZ,
+  DEFAULT_ENDPOINT: () => import_sdk14.DEFAULT_ENDPOINT,
+  MAX_CAMPAIGN_DURATION_DAYS: () => import_sdk14.MAX_CAMPAIGN_DURATION_DAYS,
+  MICRO_RIZ: () => import_sdk14.MICRO_RIZ,
+  MIN_CAMPAIGN_DURATION_DAYS: () => import_sdk14.MIN_CAMPAIGN_DURATION_DAYS,
+  MIN_INTERACTIONS: () => import_sdk14.MIN_INTERACTIONS,
+  MIN_SESSION_SECONDS: () => import_sdk14.MIN_SESSION_SECONDS,
+  PLANCK: () => import_sdk14.PLANCK,
+  RIZ: () => import_sdk14.RIZ,
   createCore: () => createCore,
   formatAmount: () => formatAmount,
   isValidAmount: () => isValidAmount,
@@ -38,7 +38,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/AwarizonCore.ts
-var import_sdk11 = require("@awarizon/sdk");
+var import_sdk13 = require("@awarizon/sdk");
 
 // src/keyring/index.ts
 var import_util_crypto = require("@polkadot/util-crypto");
@@ -644,6 +644,107 @@ var ValidatorsModule = class {
   }
 };
 
+// src/modules/identity.ts
+var import_sdk11 = require("@awarizon/sdk");
+var IdentityModule = class {
+  constructor(api) {
+    this.api = api;
+  }
+  async get(address) {
+    return (0, import_sdk11.getIdentity)(this.api, address);
+  }
+  async lookup(name) {
+    return (0, import_sdk11.lookupName)(this.api, name);
+  }
+  async isAvailable(name) {
+    return (0, import_sdk11.isNameAvailable)(this.api, name);
+  }
+  async register(params) {
+    const ext = this.api.tx.awarizonIdentity.registerIdentity(
+      params.rizName ?? null,
+      params.displayName ?? null,
+      params.bio ?? null,
+      params.avatarUri ?? null,
+      params.website ?? null
+    );
+    const result = await (0, import_sdk11.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async update(params) {
+    const ext = this.api.tx.awarizonIdentity.updateIdentity(
+      params.displayName ?? null,
+      params.bio ?? null,
+      params.avatarUri ?? null,
+      params.website ?? null
+    );
+    const result = await (0, import_sdk11.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async recalculateReputation(params) {
+    const ext = this.api.tx.awarizonIdentity.recalculateReputation(params.account);
+    const result = await (0, import_sdk11.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+};
+
+// src/modules/links.ts
+var import_sdk12 = require("@awarizon/sdk");
+var LinksModule = class {
+  constructor(api) {
+    this.api = api;
+  }
+  buildEvmLinkMessage(awarizonAddress) {
+    return `Link to Awarizon: ${awarizonAddress}`;
+  }
+  buildSolanaLinkMessage(awarizonAddress) {
+    return `Link to Awarizon: ${awarizonAddress}`;
+  }
+  async linkEvm(params) {
+    const addrBytes = hexToBytes20(params.evmAddress);
+    const sigBytes = hexToBytes65(params.signature);
+    const ext = this.api.tx.awarizonLinks.linkEvmAddress(addrBytes, sigBytes);
+    const result = await (0, import_sdk12.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async linkSolana(params) {
+    const pubkeyBytes = base58ToBytes32(params.solanaPubkey);
+    const sigBytes = base64ToBytes64(params.signature);
+    const ext = this.api.tx.awarizonLinks.linkSolanaAddress(pubkeyBytes, sigBytes);
+    const result = await (0, import_sdk12.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async unlink(params) {
+    const ext = this.api.tx.awarizonLinks.unlinkAddress(params.chain);
+    const result = await (0, import_sdk12.signAndSend)(this.api, ext, params.signer);
+    return { hash: result.blockHash, blockNumber: 0, success: true };
+  }
+  async list(address) {
+    return (0, import_sdk12.getLinkedAddresses)(this.api, address);
+  }
+};
+function hexToBytes20(hex) {
+  const clean = hex.replace(/^0x/i, "");
+  if (clean.length !== 40) throw new Error("EVM address must be 20 bytes (40 hex chars)");
+  return Uint8Array.from(Buffer.from(clean, "hex"));
+}
+function hexToBytes65(hex) {
+  const clean = hex.replace(/^0x/i, "");
+  if (clean.length !== 130) throw new Error("Signature must be 65 bytes (130 hex chars)");
+  return Uint8Array.from(Buffer.from(clean, "hex"));
+}
+function base58ToBytes32(b58) {
+  if (b58.startsWith("0x") || b58.startsWith("0X")) {
+    const clean = b58.slice(2);
+    return Uint8Array.from(Buffer.from(clean.padStart(64, "0"), "hex"));
+  }
+  throw new Error("Solana pubkey must be provided as 0x-prefixed hex (32 bytes)");
+}
+function base64ToBytes64(b64) {
+  const buf = Buffer.from(b64, "base64");
+  if (buf.length !== 64) throw new Error("Ed25519 signature must be 64 bytes");
+  return Uint8Array.from(buf);
+}
+
 // src/AwarizonCore.ts
 var AwarizonCore = class {
   constructor(config) {
@@ -654,7 +755,7 @@ var AwarizonCore = class {
   }
   async connect() {
     await this.keyring.initialize();
-    this.client = new import_sdk11.AwarizonClient(this.config.endpoint);
+    this.client = new import_sdk13.AwarizonClient(this.config.endpoint);
     await this.client.connect();
     this.api = this.client.getApi();
     this.network = new NetworkModule(this.api);
@@ -666,6 +767,8 @@ var AwarizonCore = class {
     this.assets = new AssetsModule(this.api);
     this.nfts = new NFTsModule(this.api);
     this.validators = new ValidatorsModule(this.api);
+    this.identity = new IdentityModule(this.api);
+    this.links = new LinksModule(this.api);
     return this;
   }
   async disconnect() {
@@ -692,7 +795,7 @@ async function createCore(config) {
 }
 
 // src/index.ts
-var import_sdk12 = require("@awarizon/sdk");
+var import_sdk14 = require("@awarizon/sdk");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AwarizonCore,

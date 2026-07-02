@@ -18,7 +18,7 @@ fn register_identity_works() {
         ));
 
         let record = IdentityRecords::<Test>::get(1).expect("record must exist");
-        assert_eq!(record.riz_name.as_deref(), Some(b"harry".as_ref()));
+        assert_eq!(record.riz_name.as_ref().map(|v| v.as_slice()), Some(b"harry" as &[u8]));
         assert_eq!(record.reputation_score, REPUTATION_BASE_IDENTITY);
         assert!(!record.verified);
 
@@ -190,8 +190,8 @@ fn update_identity_works() {
             None,
         ));
         let record = IdentityRecords::<Test>::get(1).unwrap();
-        assert_eq!(record.display_name.as_deref(), Some(b"Harry Jefferson".as_ref()));
-        assert_eq!(record.bio.as_deref(), Some(b"Building Awarizon".as_ref()));
+        assert_eq!(record.display_name.as_ref().map(|v| v.as_slice()), Some(b"Harry Jefferson" as &[u8]));
+        assert_eq!(record.bio.as_ref().map(|v| v.as_slice()), Some(b"Building Awarizon" as &[u8]));
     });
 }
 
@@ -261,7 +261,7 @@ fn transfer_name_works() {
         let rec1 = IdentityRecords::<Test>::get(1).unwrap();
         let rec2 = IdentityRecords::<Test>::get(2).unwrap();
         assert!(rec1.riz_name.is_none());
-        assert_eq!(rec2.riz_name.as_deref(), Some(b"alice".as_ref()));
+        assert_eq!(rec2.riz_name.as_ref().map(|v| v.as_slice()), Some(b"alice" as &[u8]));
 
         let bounded = frame_support::BoundedVec::<u8, frame_support::traits::ConstU32<32>>::try_from(
             b"alice".to_vec(),

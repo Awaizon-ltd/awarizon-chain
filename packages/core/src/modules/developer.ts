@@ -32,9 +32,9 @@ export class DeveloperModule {
       registered: true,
       verified: profile.status === 'Verified',
       stake: formatAmount(profile.staked_riz),
-      totalCampaigns: profile.total_campaigns,
+      totalCampaigns: profile.total_campaigns ?? 0,
       totalDeliveries: Number(profile.total_deliveries),
-      violationCount: profile.violation_count,
+      violationCount: profile.violation_count ?? 0,
     }
   }
 }

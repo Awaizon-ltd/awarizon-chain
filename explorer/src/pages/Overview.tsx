@@ -79,7 +79,12 @@ function RizIcon({ size = 18 }: { size?: number }) {
 /* ── Layout primitives ───────────────────────────────────────────── */
 function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-awz-surface border border-awz-border rounded-xl p-4 flex flex-col gap-3 ${className}`}>
+    <div className={`
+      bg-awz-surface
+      border border-awz-border border-b-[10px] border-b-awz-gold/60
+      rounded-xl p-4 flex flex-col gap-3
+      ${className}
+    `}>
       {children}
     </div>
   )
@@ -98,7 +103,7 @@ function CardHeader({ icon, title }: { icon: ReactNode; title: string }) {
 
 function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5 bg-black/[0.18] border border-white/[0.05] rounded-lg p-3">
       <div className="flex items-center gap-1.5">
         <span className="text-awz-muted/70">{icon}</span>
         <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">
@@ -110,10 +115,6 @@ function Row({ icon, label, children }: { icon: ReactNode; label: string; childr
       </div>
     </div>
   )
-}
-
-function Divider() {
-  return <div className="h-px w-full bg-awz-border" />
 }
 
 function LiveDot() {
@@ -277,8 +278,6 @@ export function Overview() {
             <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
           </Row>
 
-          <Divider />
-
           <Row icon={<Lock size={22} strokeWidth={2.5} />} label="Staked">
             {stakedStr}
             <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
@@ -293,13 +292,9 @@ export function Overview() {
             {epochStr}
           </Row>
 
-          <Divider />
-
           <Row icon={<Clock size={22} strokeWidth={2.5} />} label="Next Epoch In">
             {epochCountdown}
           </Row>
-
-          <Divider />
 
           <Row icon={<Shield size={22} strokeWidth={2.5} />} label="Active Validators">
             {validatorStr}
@@ -314,21 +309,15 @@ export function Overview() {
             {blockHeightStr}
           </Row>
 
-          <Divider />
-
           <Row icon={<ArrowLeftRight size={22} strokeWidth={2.5} />} label="Total Transactions">
             {totalExtStr}
           </Row>
-
-          <Divider />
 
           <Row icon={<Inbox size={22} strokeWidth={2.5} />} label="Deliveries">
             {deliveriesStr}
           </Row>
 
-          <Divider />
-
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5 bg-black/[0.18] border border-white/[0.05] rounded-lg p-3">
             <div className="flex items-center gap-1.5">
               <Zap size={22} strokeWidth={2.5} className="text-awz-muted/70" />
               <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">Est. TPS</span>
@@ -336,7 +325,7 @@ export function Overview() {
             <div className="font-mono font-semibold text-awz-text text-base sm:text-lg leading-none">
               {tpsStr !== null ? `${tpsStr} tx/s` : '———'}
             </div>
-            <div className="text-[10px] font-mono text-awz-muted tracking-wider">BLOCK TIME 3s</div>
+            <div className="text-[10px] font-mono text-awz-muted/60 tracking-wider">BLOCK TIME 3s</div>
           </div>
         </Card>
 
@@ -348,19 +337,13 @@ export function Overview() {
             {walletsStr}
           </Row>
 
-          <Divider />
-
           <Row icon={<Megaphone size={22} strokeWidth={2.5} />} label="Active Campaigns">
             {campaignsStr}
           </Row>
 
-          <Divider />
-
           <Row icon={<Send size={22} strokeWidth={2.5} />} label="Total Deliveries">
             {deliveriesStr}
           </Row>
-
-          <Divider />
 
           <Row icon={<PiggyBank size={22} strokeWidth={2.5} />} label="Inbox Reserve">
             {inboxStr}

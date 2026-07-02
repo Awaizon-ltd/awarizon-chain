@@ -103,7 +103,7 @@ export function Header() {
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/72 dark:bg-black/80 transition-colors duration-300" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="relative z-10 w-full px-4 sm:px-6">
 
           {/* ── Row 1: Brand + Nav ─────────────────────────────── */}
           <div className="flex items-center justify-between h-16 sm:h-[70px]">
@@ -212,7 +212,7 @@ export function Header() {
       {/* ── Mobile nav drawer ─────────────────────────────────────── */}
       {mobileOpen && (
         <div className="md:hidden bg-awz-bg border-b border-awz-border shadow-2xl">
-          <nav className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-0.5">
+          <nav className="w-full px-4 py-3 flex flex-col gap-0.5">
             {NAV.map((item) => (
               <Link
                 key={item.path}

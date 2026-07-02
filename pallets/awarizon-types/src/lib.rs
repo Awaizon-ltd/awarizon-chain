@@ -285,3 +285,62 @@ where
 
 #[cfg(test)]
 mod tests;
+
+// ============================================================
+// CHAIN TYPE (for cross-chain address linking)
+// ============================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen, PartialOrd, Ord)]
+pub enum ChainType {
+    EVM,
+    Solana,
+    Bitcoin,
+    Cosmos,
+    Near,
+}
+
+// ============================================================
+// LINK STATUS
+// ============================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen)]
+pub enum LinkStatus {
+    Pending,
+    Verified,
+    Revoked,
+}
+
+// ============================================================
+// IDENTITY RECORD
+// ============================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub struct IdentityRecord<BlockNumber>
+where
+    BlockNumber: Encode + Decode + TypeInfo + Clone + PartialEq + MaxEncodedLen,
+{
+    pub riz_name: Option<BoundedVec<u8, frame_support::traits::ConstU32<32>>>,
+    pub display_name: Option<BoundedVec<u8, frame_support::traits::ConstU32<64>>>,
+    pub bio: Option<BoundedVec<u8, frame_support::traits::ConstU32<256>>>,
+    pub avatar_uri: Option<BoundedVec<u8, frame_support::traits::ConstU32<256>>>,
+    pub website: Option<BoundedVec<u8, frame_support::traits::ConstU32<256>>>,
+    pub registered_at: BlockNumber,
+    pub verified: bool,
+    pub reputation_score: u32,
+}
+
+// ============================================================
+// LINKED ADDRESS
+// ============================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub struct LinkedAddress<BlockNumber>
+where
+    BlockNumber: Encode + Decode + TypeInfo + Clone + PartialEq + MaxEncodedLen,
+{
+    pub chain: ChainType,
+    pub address: BoundedVec<u8, frame_support::traits::ConstU32<64>>,
+    pub address_display: BoundedVec<u8, frame_support::traits::ConstU32<64>>,
+    pub status: LinkStatus,
+    pub linked_at: BlockNumber,
+}

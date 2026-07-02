@@ -35,6 +35,10 @@ pallet-awarizon-targeting.workspace = true
 pallet-awarizon-targeting.default-features = false
 pallet-awarizon-consensus.workspace = true
 pallet-awarizon-consensus.default-features = false
+pallet-awarizon-identity.workspace = true
+pallet-awarizon-identity.default-features = false
+pallet-awarizon-links.workspace = true
+pallet-awarizon-links.default-features = false
 pallet-assets = { version = "=42.0.0", default-features = false }
 pallet-nfts = { version = "=34.1.0", default-features = false }
 pallet-timestamp.workspace = true
@@ -91,6 +95,8 @@ std = [
 	"pallet-awarizon-state/std",
 	"pallet-awarizon-targeting/std",
 	"pallet-awarizon-consensus/std",
+	"pallet-awarizon-identity/std",
+	"pallet-awarizon-links/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",

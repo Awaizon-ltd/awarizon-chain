@@ -82,7 +82,7 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
     <div className={`
       bg-awz-surface
       border border-awz-border border-b-[10px] border-b-awz-gold/60
-      rounded-xl p-4 flex flex-col gap-3
+      rounded-xl p-3 flex flex-col gap-2
       ${className}
     `}>
       {children}
@@ -101,16 +101,37 @@ function CardHeader({ icon, title }: { icon: ReactNode; title: string }) {
   )
 }
 
-function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+function Row({ icon, label, children, className = '' }: { icon: ReactNode; label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 bg-black/[0.18] border border-white/[0.05] rounded-lg p-3">
+    <div className={`flex flex-col gap-1 bg-black/[0.04] dark:bg-black/[0.18] border border-black/[0.07] dark:border-white/[0.05] rounded-lg p-2 ${className}`}>
       <div className="flex items-center gap-1.5">
         <span className="text-awz-muted/70">{icon}</span>
-        <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">
-          {label}
-        </span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">{label}</span>
       </div>
-      <div className="font-mono font-semibold text-awz-text text-base sm:text-lg leading-none">
+      <div className="font-mono font-semibold text-awz-text text-sm leading-none">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/* Shared-background row wrapper — two cells sit side by side inside one panel */
+function RowBg({ children }: { children: ReactNode }) {
+  return (
+    <div className="bg-black/[0.04] dark:bg-black/[0.18] border border-black/[0.07] dark:border-white/[0.05] rounded-lg grid grid-cols-2 divide-x divide-black/[0.07] dark:divide-white/[0.04] flex-1">
+      {children}
+    </div>
+  )
+}
+
+function Cell({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 p-2">
+      <div className="flex items-center gap-1">
+        <span className="text-awz-muted/70 flex-shrink-0">{icon}</span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted truncate">{label}</span>
+      </div>
+      <div className="font-mono font-semibold text-awz-text text-sm leading-none">
         {children}
       </div>
     </div>
@@ -121,67 +142,65 @@ function LiveDot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-awz-gold inline-block animate-pulse flex-shrink-0" />
 }
 
-/* ── Column header row ───────────────────────────────────────────── */
-function ColHead({ children }: { children: ReactNode }) {
-  return (
-    <span className="text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 select-none">
-      {children}
-    </span>
-  )
-}
-
 /* ── Recent Blocks panel ─────────────────────────────────────────── */
 function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col overflow-hidden">
+    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col">
       {/* panel title */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-awz-border">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-awz-border">
         <RiStackLine size={22} className="text-awz-gold flex-shrink-0" />
         <div className="flex flex-col">
           <span className="text-sm font-mono font-semibold text-awz-text">Latest Blocks</span>
-          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">
-            Live · 3s block time
-          </span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">Live · 3s block time</span>
         </div>
         <span className="ml-auto"><LiveDot /></span>
       </div>
-      {/* column headers */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-awz-bg/40 border-b border-awz-border">
-        <span className="w-5 flex-shrink-0" />
-        <ColHead><span className="w-[72px] inline-block">Block #</span></ColHead>
-        <ColHead><span className="flex-1">Hash</span></ColHead>
-        <ColHead><span className="w-10 inline-block text-right">Txns</span></ColHead>
-        <ColHead><span className="w-14 inline-block text-right">Age</span></ColHead>
-      </div>
-      {/* rows */}
-      <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
-        {blocks.length === 0 ? (
-          <div className="px-4 py-10 text-center text-awz-muted text-sm font-mono">
-            Connecting to chain…
-          </div>
-        ) : (
-          blocks.map((b) => (
-            <div key={b.number} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-gold/5 transition-colors">
-              <TbCube size={20} className="text-awz-gold flex-shrink-0 w-5" />
-              <Link
-                to={`/block/${b.number}`}
-                className="font-mono text-sm font-bold text-awz-text hover:text-awz-gold transition-colors w-[72px] flex-shrink-0"
-              >
-                #{b.number.toLocaleString()}
-              </Link>
-              <span className="font-mono text-sm text-awz-muted flex-1 truncate min-w-0">
-                {truncHash(b.hash)}
-              </span>
-              <span className="font-mono text-sm text-awz-muted flex-shrink-0 w-10 text-right">
-                {b.extrinsicCount}
-              </span>
-              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-14 text-right">
-                {timeAgo(b.timestamp)}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+
+      {blocks.length === 0 ? (
+        <div className="px-5 py-10 text-center text-awz-muted text-sm font-mono">
+          Connecting to chain…
+        </div>
+      ) : (
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-awz-bg/40">
+              <th className="px-5 py-2 text-left w-6" />
+              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Block #</th>
+              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Hash</th>
+              <th className="px-2 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-14">Txns</th>
+              <th className="px-5 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-16">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            {blocks.map((b) => (
+              <tr key={b.number} className="hover:bg-awz-gold/5 transition-colors group">
+                <td className="pl-5 pr-2 py-3 w-6">
+                  <TbCube size={18} className="text-awz-gold" />
+                </td>
+                <td className="px-2 py-3 w-[88px]">
+                  <Link
+                    to={`/block/${b.number}`}
+                    className="font-mono text-sm font-bold text-awz-text group-hover:text-awz-gold transition-colors whitespace-nowrap"
+                  >
+                    #{b.number.toLocaleString()}
+                  </Link>
+                </td>
+                <td className="px-2 py-3 max-w-0">
+                  <span className="font-mono text-sm text-awz-muted block truncate">
+                    {truncHash(b.hash)}
+                  </span>
+                </td>
+                <td className="px-2 py-3 text-right w-14">
+                  <span className="font-mono text-sm text-awz-muted">{b.extrinsicCount}</span>
+                </td>
+                <td className="pl-2 pr-5 py-3 text-right w-16">
+                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(b.timestamp)}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
@@ -189,70 +208,73 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
 /* ── Recent Transactions panel ───────────────────────────────────── */
 function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl flex flex-col overflow-hidden">
+    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col">
       {/* panel title */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-awz-border">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-awz-border">
         <RiExchangeLine size={22} className="text-awz-gold flex-shrink-0" />
         <div className="flex flex-col">
           <span className="text-sm font-mono font-semibold text-awz-text">Latest Transactions</span>
-          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">
-            User-submitted extrinsics
-          </span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">User-submitted extrinsics</span>
         </div>
         <span className="ml-auto"><LiveDot /></span>
       </div>
-      {/* column headers */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-awz-bg/40 border-b border-awz-border">
-        <span className="w-5 flex-shrink-0" />
-        <ColHead><span className="flex-1">Hash / Call</span></ColHead>
-        <ColHead><span className="w-[72px] inline-block text-center">Type</span></ColHead>
-        <ColHead><span className="w-12 inline-block text-right">Block</span></ColHead>
-        <ColHead><span className="w-14 inline-block text-right">Age</span></ColHead>
-      </div>
-      {/* rows */}
-      <div className="overflow-y-auto max-h-80 divide-y divide-awz-border">
-        {txs.length === 0 ? (
-          <div className="px-4 py-10 text-center text-awz-muted text-sm font-mono">
-            No user transactions yet — inherents excluded
-          </div>
-        ) : (
-          txs.map((tx, i) => (
-            <div key={`${tx.blockNumber}-${tx.index}-${i}`} className="flex items-center gap-3 px-4 py-3 hover:bg-awz-gold/5 transition-colors">
-              {tx.isSigned
-                ? <TbArrowsExchange size={20} className="text-awz-gold flex-shrink-0 w-5" />
-                : <TbBolt size={20} className="text-awz-muted/50 flex-shrink-0 w-5" />
-              }
-              {/* hash + call stacked */}
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <Link
-                  to={`/tx/${tx.blockNumber}/${tx.index}`}
-                  className="font-mono text-sm text-awz-green hover:underline truncate"
-                >
-                  {truncHash(tx.hash)}
-                </Link>
-                <span className="font-mono text-xs text-awz-muted truncate">
-                  {tx.section}.{tx.method}
-                </span>
-              </div>
-              {/* type badge */}
-              <span className={`flex-shrink-0 w-[72px] inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide ${typeColor(tx.type)}`}>
-                {tx.type}
-              </span>
-              {/* block */}
-              <Link
-                to={`/block/${tx.blockNumber}`}
-                className="font-mono text-sm text-awz-gold hover:underline flex-shrink-0 w-12 text-right"
-              >
-                #{tx.blockNumber.toLocaleString()}
-              </Link>
-              {/* age */}
-              <span className="font-mono text-sm text-awz-muted/60 flex-shrink-0 w-14 text-right">
-                {timeAgo(tx.timestamp)}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+
+      {txs.length === 0 ? (
+        <div className="px-5 py-10 text-center text-awz-muted text-sm font-mono">
+          No user transactions yet — inherents excluded
+        </div>
+      ) : (
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-awz-bg/40">
+              <th className="px-5 py-2 text-left w-6" />
+              <th className="px-2 py-2 text-left text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal">Hash / Call</th>
+              <th className="px-2 py-2 text-center text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-[76px]">Type</th>
+              <th className="px-2 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-[60px]">Block</th>
+              <th className="px-5 py-2 text-right text-[10px] font-mono uppercase tracking-widest text-awz-muted/60 font-normal w-16">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            {txs.map((tx, i) => (
+              <tr key={`${tx.blockNumber}-${tx.index}-${i}`} className="hover:bg-awz-gold/5 transition-colors">
+                <td className="pl-5 pr-2 py-3 w-6">
+                  {tx.isSigned
+                    ? <TbArrowsExchange size={18} className="text-awz-gold" />
+                    : <TbBolt size={18} className="text-awz-muted/50" />
+                  }
+                </td>
+                <td className="px-2 py-3 max-w-0">
+                  <Link
+                    to={`/tx/${tx.blockNumber}/${tx.index}`}
+                    className="font-mono text-sm text-awz-green hover:underline block truncate"
+                  >
+                    {truncHash(tx.hash)}
+                  </Link>
+                  <span className="font-mono text-xs text-awz-muted block truncate">
+                    {tx.section}.{tx.method}
+                  </span>
+                </td>
+                <td className="px-2 py-3 text-center w-[76px]">
+                  <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide ${typeColor(tx.type)}`}>
+                    {tx.type}
+                  </span>
+                </td>
+                <td className="px-2 py-3 text-right w-[60px]">
+                  <Link
+                    to={`/block/${tx.blockNumber}`}
+                    className="font-mono text-sm text-awz-gold hover:underline whitespace-nowrap"
+                  >
+                    #{tx.blockNumber.toLocaleString()}
+                  </Link>
+                </td>
+                <td className="pl-2 pr-5 py-3 text-right w-16">
+                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(tx.timestamp)}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
@@ -304,86 +326,83 @@ export function Overview() {
       {/* ── 4-col card grid ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
-        {/* CARD 1 — RIZ SUPPLY */}
+        {/* CARD 1 — RIZ SUPPLY · stacked (values too wide for 2-col) */}
         <Card>
-          <CardHeader icon={<Coins size={30} strokeWidth={2.5} />} title="RIZ_SUPPLY" />
-
-          <Row icon={<RizIcon size={22} />} label="Total Supply">
-            {supplyStr}
-            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
-          </Row>
-
-          <Row icon={<Lock size={22} strokeWidth={2.5} />} label="Staked">
-            {stakedStr}
-            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
-          </Row>
-        </Card>
-
-        {/* CARD 2 — EPOCH STATUS */}
-        <Card>
-          <CardHeader icon={<Timer size={30} strokeWidth={2.5} />} title="EPOCH_STATUS" />
-
-          <Row icon={<RefreshCw size={22} strokeWidth={2.5} />} label="Current Epoch">
-            {epochStr}
-          </Row>
-
-          <Row icon={<Clock size={22} strokeWidth={2.5} />} label="Next Epoch In">
-            {epochCountdown}
-          </Row>
-
-          <Row icon={<Shield size={22} strokeWidth={2.5} />} label="Active Validators">
-            {validatorStr}
-          </Row>
-        </Card>
-
-        {/* CARD 3 — BLOCK ACTIVITY */}
-        <Card>
-          <CardHeader icon={<Box size={30} strokeWidth={2.5} />} title="BLOCK_ACTIVITY" />
-
-          <Row icon={<Box size={22} strokeWidth={2.5} />} label="Block Height">
-            {blockHeightStr}
-          </Row>
-
-          <Row icon={<ArrowLeftRight size={22} strokeWidth={2.5} />} label="Total Transactions">
-            {totalExtStr}
-          </Row>
-
-          <Row icon={<Inbox size={22} strokeWidth={2.5} />} label="Deliveries">
-            {deliveriesStr}
-          </Row>
-
-          <div className="flex flex-col gap-1.5 bg-black/[0.18] border border-white/[0.05] rounded-lg p-3">
-            <div className="flex items-center gap-1.5">
-              <Zap size={22} strokeWidth={2.5} className="text-awz-muted/70" />
-              <span className="text-[10px] font-mono uppercase tracking-wider text-awz-muted">Est. TPS</span>
-            </div>
-            <div className="font-mono font-semibold text-awz-text text-base sm:text-lg leading-none">
-              {tpsStr !== null ? `${tpsStr} tx/s` : '———'}
-            </div>
-            <div className="text-[10px] font-mono text-awz-muted/60 tracking-wider">BLOCK TIME 3s</div>
+          <CardHeader icon={<Coins size={28} strokeWidth={2.5} />} title="RIZ_SUPPLY" />
+          <div className="flex flex-col gap-2 flex-1">
+            <Row icon={<RizIcon size={18} />} label="Total Supply">
+              {supplyStr}
+              <span className="text-awz-muted text-[10px] font-normal ml-1">RIZ</span>
+            </Row>
+            <Row icon={<Lock size={18} strokeWidth={2.5} />} label="Staked">
+              {stakedStr}
+              <span className="text-awz-muted text-[10px] font-normal ml-1">RIZ</span>
+            </Row>
           </div>
         </Card>
 
-        {/* CARD 4 — NETWORK PARTICIPANTS */}
+        {/* CARD 2 — EPOCH STATUS · stacked */}
         <Card>
-          <CardHeader icon={<Users size={30} strokeWidth={2.5} />} title="PARTICIPANTS" />
+          <CardHeader icon={<Timer size={28} strokeWidth={2.5} />} title="EPOCH_STATUS" />
+          <div className="flex flex-col gap-2 flex-1">
+            <Row icon={<RefreshCw size={18} strokeWidth={2.5} />} label="Current Epoch">
+              {epochStr}
+            </Row>
+            <Row icon={<Clock size={18} strokeWidth={2.5} />} label="Next Epoch In">
+              {epochCountdown}
+            </Row>
+            <Row icon={<Shield size={18} strokeWidth={2.5} />} label="Active Validators">
+              {validatorStr}
+            </Row>
+          </div>
+        </Card>
 
-          <Row icon={<Wallet size={22} strokeWidth={2.5} />} label="Total Wallets">
-            {walletsStr}
-          </Row>
+        {/* CARD 3 — BLOCK ACTIVITY · 2×2 with shared row backgrounds */}
+        <Card>
+          <CardHeader icon={<Box size={28} strokeWidth={2.5} />} title="BLOCK_ACTIVITY" />
+          <div className="flex flex-col gap-2 flex-1">
+            <RowBg>
+              <Cell icon={<Box size={14} strokeWidth={2.5} />} label="Block Height">
+                {blockHeightStr}
+              </Cell>
+              <Cell icon={<ArrowLeftRight size={14} strokeWidth={2.5} />} label="Total Txns">
+                {totalExtStr}
+              </Cell>
+            </RowBg>
+            <RowBg>
+              <Cell icon={<Inbox size={14} strokeWidth={2.5} />} label="Deliveries">
+                {deliveriesStr}
+              </Cell>
+              <Cell icon={<Zap size={14} strokeWidth={2.5} />} label="Est. TPS">
+                {tpsStr !== null ? `${tpsStr} tx/s` : '———'}
+                <span className="text-[9px] font-mono text-awz-muted/50 block mt-0.5">3s BLOCK TIME</span>
+              </Cell>
+            </RowBg>
+          </div>
+        </Card>
 
-          <Row icon={<Megaphone size={22} strokeWidth={2.5} />} label="Active Campaigns">
-            {campaignsStr}
-          </Row>
-
-          <Row icon={<Send size={22} strokeWidth={2.5} />} label="Total Deliveries">
-            {deliveriesStr}
-          </Row>
-
-          <Row icon={<PiggyBank size={22} strokeWidth={2.5} />} label="Inbox Reserve">
-            {inboxStr}
-            <span className="text-awz-muted text-xs font-normal ml-1">RIZ</span>
-          </Row>
+        {/* CARD 4 — PARTICIPANTS · 2×2 with shared row backgrounds */}
+        <Card>
+          <CardHeader icon={<Users size={28} strokeWidth={2.5} />} title="PARTICIPANTS" />
+          <div className="flex flex-col gap-2 flex-1">
+            <RowBg>
+              <Cell icon={<Wallet size={14} strokeWidth={2.5} />} label="Total Wallets">
+                {walletsStr}
+              </Cell>
+              <Cell icon={<Megaphone size={14} strokeWidth={2.5} />} label="Campaigns">
+                {campaignsStr}
+              </Cell>
+            </RowBg>
+            <RowBg>
+              <Cell icon={<Send size={14} strokeWidth={2.5} />} label="Deliveries">
+                {deliveriesStr}
+              </Cell>
+              <Cell icon={<PiggyBank size={14} strokeWidth={2.5} />} label="Inbox Reserve">
+                {inboxStr}
+                <span className="text-awz-muted text-[10px] font-normal ml-1">RIZ</span>
+              </Cell>
+            </RowBg>
+          </div>
         </Card>
 
       </div>

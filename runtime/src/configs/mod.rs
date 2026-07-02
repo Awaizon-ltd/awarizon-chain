@@ -370,3 +370,13 @@ impl pallet_vesting::Config for Runtime {
 	type BlockNumberProvider = System;
 	const MAX_VESTING_SCHEDULES: u32 = 3;
 }
+
+impl pallet_awarizon_identity::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+}
+
+impl pallet_awarizon_links::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+}

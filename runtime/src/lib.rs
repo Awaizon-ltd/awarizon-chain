@@ -28,6 +28,8 @@ pub use pallet_awarizon_types;
 pub use pallet_awarizon_state;
 pub use pallet_awarizon_targeting;
 pub use pallet_awarizon_consensus;
+pub use pallet_awarizon_identity;
+pub use pallet_awarizon_links;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
@@ -257,4 +259,10 @@ mod runtime {
 
 	#[runtime::pallet_index(14)]
 	pub type Vesting = pallet_vesting;
+
+	#[runtime::pallet_index(15)]
+	pub type AwarizonIdentity = pallet_awarizon_identity;
+
+	#[runtime::pallet_index(16)]
+	pub type AwarizonLinks = pallet_awarizon_links;
 }

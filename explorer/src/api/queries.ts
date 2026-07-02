@@ -375,9 +375,9 @@ export function useLiveChainData() {
                 return [
                   { number: blockNumber, hash: blockHash, timestamp: blockTs, extrinsicCount: userExts.length },
                   ...prev,
-                ].slice(0, 20)
+                ].slice(0, 10)
               })
-              setTxs(prev => [...newTxs, ...prev].slice(0, 50))
+              setTxs(prev => [...newTxs, ...prev].slice(0, 10))
             } catch {
               // ignore errors on individual blocks
             }

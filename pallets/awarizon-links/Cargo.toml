@@ -1,0 +1,43 @@
+[package]
+name = "pallet-awarizon-links"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.7.4", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
+frame-support = { version = "40.1.0", default-features = false }
+frame-system = { version = "40.1.0", default-features = false }
+sp-core = { version = "36.1.0", default-features = false }
+sp-io = { version = "40.0.1", default-features = false }
+sp-runtime = { version = "41.1.0", default-features = false }
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+pallet-awarizon-types = { path = "../awarizon-types", default-features = false }
+
+[dev-dependencies]
+sp-io = { version = "40.0.1", default-features = true }
+sp-core = { version = "36.1.0", default-features = true }
+sp-runtime = { version = "41.1.0", default-features = true }
+libsecp256k1 = { version = "0.7", default-features = false, features = ["static-context", "std"] }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "hex/std",
+    "pallet-awarizon-types/std",
+]
+runtime-benchmarks = [
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+]

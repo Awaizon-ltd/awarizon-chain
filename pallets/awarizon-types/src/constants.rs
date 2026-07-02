@@ -89,3 +89,20 @@ pub const DEVELOPER_MIN_TENURE_DAYS: u32 = 30;
 
 // Tokenomics
 pub const ENGAGEMENT_REWARD_POOL_BPS: u32 = 3_000; // 30% of total supply
+
+// Identity pallet constants
+pub const MIN_RIZ_NAME_LENGTH: u32 = 3;
+pub const MAX_RIZ_NAME_LENGTH: u32 = 32;
+pub const MAX_DISPLAY_NAME_LENGTH: u32 = 64;
+pub const MAX_BIO_LENGTH: u32 = 256;
+pub const MAX_URI_LENGTH: u32 = 256;
+pub const MAX_LINKED_ADDRESSES: u32 = 10;
+pub const MAX_REPUTATION_SCORE: u32 = 10_000;
+
+// Reputation score weights
+pub const REPUTATION_BASE_IDENTITY: u32 = 100;
+pub const REPUTATION_PER_LINKED_ADDRESS: u32 = 50;
+pub const REPUTATION_PER_ENGAGEMENT: u32 = 10;
+pub const REPUTATION_DEVELOPER_REGISTERED: u32 = 200;
+pub const REPUTATION_VALIDATOR_REGISTERED: u32 = 500;
+pub const REPUTATION_CREATOR_PROGRAM: u32 = 150;

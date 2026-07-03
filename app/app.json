@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Awarizon",
+    "slug": "awarizon",
+    "version": "1.0.0",
+    "scheme": "awarizon",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.awarizon.app"
+    },
+    "android": {
+      "package": "com.awarizon.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

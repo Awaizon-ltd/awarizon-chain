@@ -1,12 +1,14 @@
 {
   "name": "@awarizon/core",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "High-level SDK for building on the Awarizon blockchain",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -32,6 +34,8 @@
     "@types/node": "^20.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

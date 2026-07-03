@@ -19,7 +19,7 @@ export const useAppStore = create<AppStore>((set) => ({
   isDark: true,
   setIsDark: (isDark) => set({ isDark }),
 
-  networkEndpoint: 'wss://testnet.awarizon.com',
+  networkEndpoint: 'wss://rpc.awarizon.com',
   networkName: 'Awarizon Testnet',
   setNetwork: (networkEndpoint, networkName) => set({ networkEndpoint, networkName }),
 

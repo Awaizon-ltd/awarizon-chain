@@ -4,7 +4,7 @@ async function main() {
   console.log('Connecting to Awarizon node...')
 
   const core = await createCore({
-    endpoint: 'ws://127.0.0.1:9944',
+    endpoint: 'wss://rpc.awarizon.com',
   })
 
   console.log('Connected. Testing modules...')

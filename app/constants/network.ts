@@ -1,7 +1,7 @@
 export const NETWORKS = {
   testnet: {
     name: 'Awarizon Testnet',
-    endpoint: 'wss://testnet.awarizon.com',
+    endpoint: 'wss://rpc.awarizon.com',
     explorerUrl: 'https://explorer.awarizon.com',
     isTestnet: true,
   },

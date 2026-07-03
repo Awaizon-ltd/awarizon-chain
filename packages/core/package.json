@@ -1,15 +1,18 @@
 {
   "name": "@awarizon/core",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "High-level SDK for building on the Awarizon blockchain",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
@@ -18,7 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@awarizon/sdk": "file:../../sdk",
+    "@awarizon/sdk": "^2.0.0",
     "@polkadot/keyring": "^13.0.0",
     "@polkadot/util": "^13.0.0",
     "@polkadot/util-crypto": "^13.0.0"
@@ -27,5 +30,8 @@
     "typescript": "^5.0.0",
     "tsup": "^8.0.0",
     "@types/node": "^20.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }

@@ -6,8 +6,11 @@
     "scheme": "awarizon",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0A0A0A"
     },
     "ios": {
@@ -15,10 +18,13 @@
       "bundleIdentifier": "com.awarizon.app"
     },
     "android": {
-      "package": "com.awarizon.app",
+      "package": "com.awarizon.awarizon",
       "adaptiveIcon": {
-        "backgroundColor": "#0A0A0A"
-      }
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "allowBackup": true
     },
     "plugins": [
       "expo-router",
@@ -32,6 +38,24 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/35f64637-38af-45d6-8ef8-0e1ed3bd27a0",
+      "enabled": true,
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "eas": {
+        "projectId": "35f64637-38af-45d6-8ef8-0e1ed3bd27a0"
+      },
+      "router": {
+        "root": "app"
+      }
+    },
+    "owner": "awarizon"
   }
 }

@@ -161,7 +161,8 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
           Connecting to chain…
         </div>
       ) : (
-        <table className="w-full border-collapse table-fixed">
+        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
+        <table className="w-full border-collapse table-fixed min-w-[480px]">
           <thead>
             <tr className="bg-awz-bg/40">
               <th className="py-2 text-left w-[42px]" />
@@ -200,6 +201,7 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )
@@ -224,7 +226,8 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
           No user transactions yet — inherents excluded
         </div>
       ) : (
-        <table className="w-full border-collapse table-fixed">
+        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
+        <table className="w-full border-collapse table-fixed min-w-[480px]">
           <thead>
             <tr className="bg-awz-bg/40">
               <th className="py-2 text-left w-[42px]" />
@@ -274,6 +277,7 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

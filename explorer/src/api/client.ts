@@ -2,7 +2,7 @@ import { AwarizonClient } from '@awarizon/sdk'
 
 let client: AwarizonClient | null = null
 
-const ENDPOINT = (import.meta as any).env?.VITE_RPC_ENDPOINT ?? 'ws://127.0.0.1:9944'
+const ENDPOINT = (import.meta as any).env?.VITE_RPC_ENDPOINT ?? 'wss://rpc.awarizon.com'
 
 export async function getClient(): Promise<AwarizonClient> {
   if (!client) {

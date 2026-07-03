@@ -9,7 +9,7 @@ import { formatRiz, parseRiz } from './src/utils'
 
 async function main() {
   console.log('Connecting to Awarizon node...')
-  const client = await connect('ws://127.0.0.1:9944')
+  const client = await connect('wss://rpc.awarizon.com')
   const api = client.getApi()
 
   console.log('\nTesting RPC methods...')

@@ -1,15 +1,18 @@
 {
   "name": "@awarizon/react",
-  "version": "0.1.0",
-  "description": "React hooks and Provider for the Awarizon blockchain. Works in React web and React Native.",
+  "version": "2.0.0",
+  "description": "React hooks and Provider for the Awarizon blockchain.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
@@ -18,11 +21,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@awarizon/core": "file:../core",
-    "@awarizon/sdk": "file:../../sdk",
-    "react": "^18.2.0"
+    "@awarizon/core": "^2.0.0",
+    "@awarizon/sdk": "^2.0.0"
   },
   "devDependencies": {
+    "react": "^18.2.0",
     "@types/react": "^18.2.0",
     "typescript": "^5.0.0",
     "tsup": "^8.0.0",
@@ -30,5 +33,8 @@
   },
   "peerDependencies": {
     "react": ">=17.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }

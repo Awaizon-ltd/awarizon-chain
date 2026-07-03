@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, SafeAreaView, ScrollView, Alert, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
-import { AwarizonKeyring } from '@awarizon/core'
+import { mnemonicGenerate } from '@polkadot/util-crypto'
 import { Button } from '../../../components/ui/Button'
 import { Colors } from '../../../constants/colors'
 
@@ -12,12 +12,14 @@ export default function CreateMnemonicScreen() {
   const C = Colors.dark
 
   useEffect(() => {
-    const keyring = new AwarizonKeyring()
-    keyring.initialize().then(() => {
-      const wallet = keyring.generate()
-      setMnemonic(wallet.mnemonic.split(' '))
+    try {
+      const phrase = mnemonicGenerate()
+      setMnemonic(phrase.split(' '))
+    } catch {
+      Alert.alert('Error', 'Failed to generate recovery phrase. Please try again.')
+    } finally {
       setLoading(false)
-    })
+    }
   }, [])
 
   const handleContinue = () => {
@@ -86,13 +88,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 24 },
-  step: { fontSize: 11, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  subtitle: { fontSize: 14, marginBottom: 24 },
+  step: { fontSize: 11, fontFamily: 'Roboto_400Regular', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 },
+  title: { fontSize: 24, fontFamily: 'Roboto_700Bold', marginBottom: 8 },
+  subtitle: { fontSize: 14, fontFamily: 'Roboto_400Regular', marginBottom: 24 },
   warning: { borderRadius: 12, borderWidth: 1, padding: 16, marginBottom: 24 },
-  warnTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  warnText: { fontSize: 13 },
-  loading: { textAlign: 'center', marginTop: 32 },
+  warnTitle: { fontSize: 14, fontFamily: 'Roboto_500Medium', marginBottom: 4 },
+  warnText: { fontSize: 13, fontFamily: 'Roboto_400Regular' },
+  loading: { textAlign: 'center', marginTop: 32, fontFamily: 'Roboto_400Regular' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   wordCell: {
     flexDirection: 'row',
@@ -105,8 +107,8 @@ const styles = StyleSheet.create({
     minWidth: '30%',
     flexGrow: 1,
   },
-  wordNum: { fontSize: 11, width: 18 },
-  word: { fontSize: 13, fontFamily: 'monospace' },
+  wordNum: { fontSize: 11, width: 18, fontFamily: 'Roboto_400Regular' },
+  word: { fontSize: 13, fontFamily: 'RobotoMono_400Regular' },
   footer: { padding: 24, paddingBottom: 32, borderTopWidth: 1 },
   btnFull: { width: '100%' },
 })

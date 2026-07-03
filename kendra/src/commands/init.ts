@@ -66,7 +66,7 @@ export default defineConfig({
       accounts: ['//Alice'],
     },
     testnet: {
-      endpoint: 'wss://testnet.awarizon.com',
+      endpoint: 'wss://rpc.awarizon.com',
       accounts: [process.env.DEPLOYER_MNEMONIC ?? ''],
     },
   },

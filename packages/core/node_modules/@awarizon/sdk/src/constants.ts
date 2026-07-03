@@ -11,8 +11,9 @@ export const MILLI_RIZ = 1_000_000_000n  // 10^9 planck
 // ----------------------------------------------------------------
 // Network defaults
 // ----------------------------------------------------------------
-export const DEFAULT_ENDPOINT = 'ws://127.0.0.1:9944'
-export const CHAIN_NAME = 'Awarizon Development'
+export const DEFAULT_ENDPOINT = 'wss://rpc.awarizon.com'
+export const DEFAULT_HTTP_ENDPOINT = 'https://rpc.awarizon.com'
+export const CHAIN_NAME = 'Awarizon'
 
 // ----------------------------------------------------------------
 // Consensus

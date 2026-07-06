@@ -142,14 +142,17 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub FeeMultiplier: Multiplier = Multiplier::one();
 
-	// 10 planck per ref_time unit.
-	// A standard-tier extrinsic (50_000_000 ref_time) costs 500_000_000 planck = 0.0005 RIZ.
-	// A heavy-tier extrinsic (100_000_000 ref_time) costs 1_000_000_000 planck = 0.001 RIZ.
-	pub const WeightFeeCoefficient: Balance = 10;
+	// 1/8 planck per ref_time unit (was a flat 10 planck/unit).
+	// A real balances.transfer_keep_alive (call weight + base extrinsic weight +
+	// TxExtension pipeline, ~768_500_000 ref_time) now costs roughly
+	// 768_500_000 / 8 = 96_062_500 planck ≈ 0.0000961 RIZ, versus ~0.0077 RIZ before —
+	// close to the 0.0001 RIZ target.
+	pub const WeightFeeNumerator: Balance = 1;
+	pub const WeightFeeDenominator: Balance = 8;
 
-	// 100_000 planck per byte of encoded transaction length.
-	// A 100-byte tx adds 10_000_000 planck = 0.00001 RIZ to the fee.
-	pub const LengthFeeCoefficient: Balance = 100_000;
+	// 10 planck per byte of encoded transaction length (was 100_000).
+	// A ~150-byte signed transfer now adds ~1_500 planck (~0.0000000015 RIZ) to the fee.
+	pub const LengthFeeCoefficient: Balance = 10;
 }
 
 pub struct AwarizonWeightToFee;
@@ -157,7 +160,9 @@ impl WeightToFee for AwarizonWeightToFee {
 	type Balance = Balance;
 	fn weight_to_fee(weight: &Weight) -> Balance {
 		let ref_time = weight.ref_time() as Balance;
-		ref_time.saturating_mul(WeightFeeCoefficient::get())
+		ref_time
+			.saturating_mul(WeightFeeNumerator::get())
+			.saturating_div(WeightFeeDenominator::get())
 	}
 }
 

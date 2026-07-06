@@ -511,30 +511,30 @@ mod fee_tests {
 
     #[test]
     fn fee_calculations_match_expected_planck_values() {
-        // LIGHT: 10_000_000 * 10 planck/unit = 100_000_000 planck = 0.0001 RIZ
+        // LIGHT: 10_000_000 * 1/8 planck/unit = 1_250_000 planck
         assert_eq!(
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_LIGHT, 0)),
-            100_000_000
+            1_250_000
         );
-        // STANDARD: 50_000_000 * 10 = 500_000_000 planck = 0.0005 RIZ
+        // STANDARD: 50_000_000 * 1/8 = 6_250_000 planck
         assert_eq!(
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_STANDARD, 0)),
-            500_000_000
+            6_250_000
         );
-        // HEAVY: 100_000_000 * 10 = 1_000_000_000 planck = 0.001 RIZ
+        // HEAVY: 100_000_000 * 1/8 = 12_500_000 planck
         assert_eq!(
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_HEAVY, 0)),
-            1_000_000_000
+            12_500_000
         );
-        // VERY_HEAVY: 250_000_000 * 10 = 2_500_000_000 planck = 0.0025 RIZ
+        // VERY_HEAVY: 250_000_000 * 1/8 = 31_250_000 planck
         assert_eq!(
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_VERY_HEAVY, 0)),
-            2_500_000_000
+            31_250_000
         );
-        // OCW: 5_000_000 * 10 = 50_000_000 planck = 0.00005 RIZ
+        // OCW: 5_000_000 * 1/8 = 625_000 planck
         assert_eq!(
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_OCW, 0)),
-            50_000_000
+            625_000
         );
     }
 
@@ -585,9 +585,9 @@ mod fee_tests {
         let base_fee =
             AwarizonWeightToFee::weight_to_fee(&Weight::from_parts(WEIGHT_TIER_STANDARD, 0));
         let operational_fee = base_fee.saturating_mul(5);
-        // 0.0005 RIZ * 5 = 0.0025 RIZ — still well under 1 RIZ
+        // 0.00000625 RIZ * 5 = 0.00003125 RIZ — still well under 1 RIZ
         assert!(operational_fee < RIZ);
-        assert_eq!(operational_fee, 2_500_000_000);
+        assert_eq!(operational_fee, 31_250_000);
     }
 }
 

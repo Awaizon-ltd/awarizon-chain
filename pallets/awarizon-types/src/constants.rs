@@ -53,17 +53,35 @@ pub const INBOX_STATE_RESERVE: [u8; 32] = [
 ];
 
 // Fee model weight tiers (ref_time units)
-// Multiply by WeightFeeCoefficient (10 planck/unit) to get approximate planck cost.
-// LIGHT        ≈ 0.0001  RIZ  (100_000_000 planck)
-// STANDARD     ≈ 0.0005  RIZ  (500_000_000 planck)
-// HEAVY        ≈ 0.001   RIZ  (1_000_000_000 planck)
-// VERY_HEAVY   ≈ 0.0025  RIZ  (2_500_000_000 planck)
-// OCW          ≈ 0.00005 RIZ  (50_000_000 planck) — near-free, protocol-internal
+// Multiply by WeightFeeNumerator/WeightFeeDenominator (1/8 planck/unit, see
+// runtime/src/configs/mod.rs) to get approximate planck cost. Note: these tiers
+// are currently reference values only — no pallet dispatchable annotates its
+// weight with them yet, so today's per-pallet fees are driven purely by each
+// call's real benchmarked weight (or zero, for pallets using WeightInfo = ()).
+// LIGHT        ≈ 0.00000125 RIZ  (1_250_000 planck)
+// STANDARD     ≈ 0.00000625 RIZ  (6_250_000 planck)
+// HEAVY        ≈ 0.0000125  RIZ  (12_500_000 planck)
+// VERY_HEAVY   ≈ 0.00003125 RIZ  (31_250_000 planck)
+// OCW          ≈ 0.000000625 RIZ (625_000 planck) — near-free, protocol-internal
 pub const WEIGHT_TIER_LIGHT: u64 = 10_000_000;
 pub const WEIGHT_TIER_STANDARD: u64 = 50_000_000;
 pub const WEIGHT_TIER_HEAVY: u64 = 100_000_000;
 pub const WEIGHT_TIER_VERY_HEAVY: u64 = 250_000_000;
 pub const WEIGHT_TIER_OCW: u64 = 5_000_000;
+
+// Fee targets (planck, 12 decimals). These describe the intended end-to-end
+// fee for each operation class; the runtime doesn't currently enforce a
+// per-pallet ceiling against them, but they document the goal that
+// runtime/src/configs/mod.rs's AwarizonWeightToFee/AwarizonLengthToFee
+// coefficients are tuned against.
+/// Standard transfer (balances.transfer_keep_alive) fee target: ~0.0001 RIZ
+pub const TRANSFER_FEE_TARGET: u128 = 100_000_000;
+/// Protocol operation (inbox, identity, campaigns, developer/validator ops) fee target range
+pub const PROTOCOL_FEE_TARGET_MIN: u128 = 200_000_000; // 0.0002 RIZ
+pub const PROTOCOL_FEE_TARGET_MAX: u128 = 500_000_000; // 0.0005 RIZ
+/// Contract call/instantiate fee target range (scales with actual execution weight)
+pub const CONTRACT_FEE_TARGET_MIN: u128 = 1_000_000_000; // 0.001 RIZ
+pub const CONTRACT_FEE_TARGET_MAX: u128 = 5_000_000_000; // 0.005 RIZ
 
 // Transaction type identifiers
 pub const TX_TYPE_FINANCIAL: u8 = 0x01;

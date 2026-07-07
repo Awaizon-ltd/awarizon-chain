@@ -10,8 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@awarizon/sdk": "file:../sdk",
+    "@awarizon/sdk": "^2.1.2",
+    "@polkadot/extension-dapp": "^0.63.1",
     "@tanstack/react-query": "^5.0.0",
+    "ethereum-blockies-base64": "^1.0.2",
     "lucide-react": "^1.23.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -47,7 +47,7 @@ function fmtDate(ts: number): string {
 /* ── sub-components ─────────────────────────────────────────────── */
 function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden">
+    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden shadow-lg">
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-awz-border">
         <span className="text-awz-gold">{icon}</span>
         <span className="text-xs font-mono uppercase tracking-widest text-awz-muted">{title}</span>
@@ -159,7 +159,7 @@ export function BlockDetail() {
         <Link to="/" className="inline-flex items-center gap-1.5 text-awz-muted text-xs font-mono hover:text-awz-gold transition-colors w-fit">
           <ArrowLeft size={14} /> OVERVIEW
         </Link>
-        <div className="bg-awz-surface border border-awz-border rounded-xl p-12 text-center">
+        <div className="bg-awz-surface border border-awz-border rounded-xl p-12 text-center shadow-lg">
           <TbCube size={44} className="text-awz-muted/20 mx-auto mb-4" />
           <p className="text-awz-muted font-mono text-sm">{error ?? 'Block not found'}</p>
         </div>
@@ -225,7 +225,7 @@ export function BlockDetail() {
           { label: 'Signed Txns', value: String(data.extrinsics.filter(e => e.isSigned).length) },
           { label: 'Time', value: data.timestamp > 0 ? timeAgo(data.timestamp) : '—' },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-awz-surface border border-awz-border rounded-xl p-4 flex flex-col gap-1">
+          <div key={label} className="bg-awz-surface border border-awz-border rounded-xl p-4 flex flex-col gap-1 shadow-lg">
             <span className="text-awz-muted text-[10px] font-mono uppercase tracking-widest">{label}</span>
             <span className="text-awz-text text-xl font-mono font-semibold leading-tight">{value}</span>
           </div>

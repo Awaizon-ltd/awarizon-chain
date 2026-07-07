@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, Tooltip,
+} from 'recharts'
+import {
   Coins, Lock, Timer, RefreshCw, Clock, Shield,
   Box, ArrowLeftRight, Inbox, Zap,
   Users, Wallet, Megaphone, Send, PiggyBank,
@@ -16,22 +20,9 @@ import {
   timeAgo,
 } from '../api/queries'
 import type { BlockInfo, TxInfo } from '../api/queries'
+import { NetworkInfoCard } from '../components/NetworkInfoCard'
 import { getClient } from '../api/client'
-
-/* ── Constants ───────────────────────────────────────────────────── */
-const RIZ = 1_000_000_000_000n
-
-/* ── Formatters ──────────────────────────────────────────────────── */
-function formatRizComma(planck: bigint, decimals = 0): string {
-  const whole = planck / RIZ
-  if (decimals === 0) return whole.toLocaleString()
-  const frac = (planck % RIZ).toString().padStart(12, '0').slice(0, decimals)
-  return `${whole.toLocaleString()}.${frac}`
-}
-
-function formatRizStr(planckStr: string, decimals = 0): string {
-  try { return formatRizComma(BigInt(planckStr), decimals) } catch { return '———' }
-}
+import { formatRizAmount, formatRizAmountStr } from '../lib/formatRiz'
 
 function typeColor(type: string): string {
   switch (type) {
@@ -81,8 +72,8 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
   return (
     <div className={`
       bg-awz-surface
-      border border-awz-border border-b-[10px] border-b-awz-gold/60
-      rounded-xl p-3 flex flex-col gap-2
+      border border-awz-border
+      rounded-xl p-3 flex flex-col gap-2 shadow-lg
       ${className}
     `}>
       {children}
@@ -138,22 +129,17 @@ function Cell({ icon, label, children }: { icon: ReactNode; label: string; child
   )
 }
 
-function LiveDot() {
-  return <span className="w-1.5 h-1.5 rounded-full bg-awz-gold inline-block animate-pulse flex-shrink-0" />
-}
-
 /* ── Recent Blocks panel ─────────────────────────────────────────── */
 function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col shadow-lg">
       {/* panel title */}
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-awz-border">
         <RiStackLine size={22} className="text-awz-gold flex-shrink-0" />
         <div className="flex flex-col">
           <span className="text-sm font-mono font-semibold text-awz-text">Latest Blocks</span>
-          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">Live · 3s block time</span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">3s block time</span>
         </div>
-        <span className="ml-auto"><LiveDot /></span>
       </div>
 
       {blocks.length === 0 ? (
@@ -210,7 +196,7 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
 /* ── Recent Transactions panel ───────────────────────────────────── */
 function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
   return (
-    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col shadow-lg">
       {/* panel title */}
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-awz-border">
         <RiExchangeLine size={22} className="text-awz-gold flex-shrink-0" />
@@ -218,7 +204,6 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
           <span className="text-sm font-mono font-semibold text-awz-text">Latest Transactions</span>
           <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">User-submitted extrinsics</span>
         </div>
-        <span className="ml-auto"><LiveDot /></span>
       </div>
 
       {txs.length === 0 ? (
@@ -287,7 +272,7 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
 export function Overview() {
   const { data: stats } = useNetworkStats()
   const { data: validatorCount } = useValidatorCount()
-  const { latestBlockNumber, tps, blocks, txs } = useLiveChainData()
+  const { latestBlockNumber, tps, tpsHistory, blocks, txs } = useLiveChainData()
 
   const [totalIssuance, setTotalIssuance] = useState<bigint | null>(null)
 
@@ -313,8 +298,8 @@ export function Overview() {
   const epochCountdown  = latestBlockNumber > 0 ? calcEpochCountdown(latestBlockNumber) : '———'
   const tpsStr          = latestBlockNumber > 0 ? tps.toFixed(2) : null
 
-  const supplyStr      = totalIssuance !== null             ? formatRizComma(totalIssuance)                  : '———'
-  const stakedStr      = stats?.total_staked          != null ? formatRizStr(stats.total_staked)               : '———'
+  const supplyStr      = totalIssuance !== null             ? formatRizAmount(totalIssuance)                  : '———'
+  const stakedStr      = stats?.total_staked          != null ? formatRizAmountStr(stats.total_staked)         : '———'
   const epochStr       = stats?.current_epoch         != null ? stats.current_epoch.toLocaleString()           : '———'
   const validatorStr   = validatorCount               != null ? Number(validatorCount).toLocaleString()        : '———'
   const blockHeightStr = latestBlockNumber > 0                ? `#${latestBlockNumber.toLocaleString()}`       : '———'
@@ -322,7 +307,7 @@ export function Overview() {
   const deliveriesStr  = stats?.total_deliveries      != null ? stats.total_deliveries.toLocaleString()        : '———'
   const walletsStr     = stats?.total_wallets         != null ? stats.total_wallets.toLocaleString()           : '———'
   const campaignsStr   = stats?.active_campaigns      != null ? stats.active_campaigns.toLocaleString()        : '———'
-  const inboxStr       = stats?.inbox_reserve_balance != null ? formatRizStr(stats.inbox_reserve_balance, 2)   : '———'
+  const inboxStr       = stats?.inbox_reserve_balance != null ? formatRizAmountStr(stats.inbox_reserve_balance) : '———'
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
@@ -411,19 +396,71 @@ export function Overview() {
 
       </div>
 
+      {/* ── TPS CHART ────────────────────────────────────────────── */}
+      {tpsHistory.length > 1 && (
+        <div className="bg-awz-surface border border-awz-border rounded-xl px-5 py-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-awz-muted">Throughput · Tx/s</span>
+            <span className="ml-auto font-mono text-xs font-semibold text-awz-gold">
+              {tps.toFixed(2)} tx/s
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={72}>
+            <AreaChart data={tpsHistory} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="tpsGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="10%" stopColor="#C9A84C" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="t" hide />
+              <YAxis hide domain={[0, 'auto']} />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  return (
+                    <div className="bg-awz-bg border border-awz-border rounded-lg px-2.5 py-1.5 text-xs font-mono text-awz-text shadow-lg">
+                      {(payload[0].value as number).toFixed(3)} tx/s
+                    </div>
+                  )
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="tps"
+                stroke="#C9A84C"
+                strokeWidth={1.5}
+                fill="url(#tpsGrad)"
+                dot={false}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {/* ── RECENT ACTIVITY ──────────────────────────────────────── */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
             Recent Activity
           </span>
-          <LiveDot />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <RecentBlocksList blocks={blocks} />
           <RecentTransactionsList txs={txs} />
         </div>
+      </div>
+
+      {/* ── NETWORK ──────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono uppercase tracking-[0.18em] text-awz-muted">
+            Network
+          </span>
+        </div>
+        <NetworkInfoCard />
       </div>
 
     </div>

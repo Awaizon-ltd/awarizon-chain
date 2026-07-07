@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
+import { AddChainButton } from '../AddChainButton'
 
 const NAV = [
   { label: 'Overview', path: '/' },
   { label: 'Blocks', path: '/blocks' },
   { label: 'Validators', path: '/validators' },
   { label: 'Campaigns', path: '/campaigns' },
-  { label: 'Developers', path: '/developers' },
 ]
 
 /* ── Inline SVG icons ───────────────────────────────────────────── */
@@ -62,6 +62,7 @@ function XIcon() {
 /* ── Search routing ─────────────────────────────────────────────── */
 function resolveSearchRoute(q: string): string {
   if (/^\d+$/.test(q)) return `/blocks?block=${q}`
+  // 0x + 64 hex chars = block hash or tx hash — Blocks.tsx resolves which it is
   if (/^0x[0-9a-fA-F]{64}$/.test(q)) return `/blocks?hash=${encodeURIComponent(q)}`
   return `/account?address=${encodeURIComponent(q)}`
 }
@@ -93,20 +94,21 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full">
       {/* ── Banner background ──────────────────────────────────── */}
       <div
-        className="relative w-full"
+        className="relative w-full flex flex-col justify-center"
         style={{
           backgroundImage: 'url(/banner.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
+          minHeight: '40vh',
         }}
       >
         {/* Overlay */}
-        <div className="absolute inset-0 bg-black/72 dark:bg-black/80 transition-colors duration-300" />
+        <div className="absolute inset-0 bg-black/40 transition-colors duration-300" />
 
         <div className="relative z-10 w-full px-4 sm:px-6">
 
           {/* ── Row 1: Brand + Nav ─────────────────────────────── */}
-          <div className="flex items-center justify-between h-16 sm:h-[70px]">
+          <div className="flex items-center justify-between h-20 sm:h-[88px]">
 
             {/* Brand */}
             <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
@@ -142,6 +144,8 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
+              <div className="w-px h-5 bg-white/20 mx-2" />
+              <AddChainButton variant="banner" />
               <div className="w-px h-5 bg-white/20 mx-2" />
               <button
                 onClick={toggle}
@@ -183,7 +187,7 @@ export function Header() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by address, block number, or hash…"
+                  placeholder="Search by address, block number, block hash, or tx hash…"
                   className={[
                     'w-full rounded-xl pl-12 pr-14 py-3.5 sm:py-4',
                     'bg-white/10 dark:bg-black/40 backdrop-blur-md',
@@ -202,7 +206,7 @@ export function Header() {
                 </button>
               </div>
               <p className="text-center text-white/30 text-xs font-mono mt-2.5 hidden sm:block">
-                address · block number · block hash
+                address · .riz name · block number · block hash · tx hash
               </p>
             </form>
           </div>

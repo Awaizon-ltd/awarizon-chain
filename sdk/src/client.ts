@@ -5,6 +5,11 @@ import { DEFAULT_ENDPOINT } from './constants'
 export class AwarizonClient {
   private api: ApiPromise | null = null
   private endpoint: string
+  // In-flight connection attempt. Callers that arrive while a connect() is
+  // already underway await this instead of racing to create their own
+  // ApiPromise/WsProvider — without it, several hooks calling connect()
+  // concurrently on mount would each open a separate connection.
+  private connecting: Promise<ApiPromise> | null = null
 
   constructor(endpoint: string = DEFAULT_ENDPOINT) {
     this.endpoint = endpoint
@@ -12,16 +17,25 @@ export class AwarizonClient {
 
   async connect(): Promise<ApiPromise> {
     if (this.api?.isConnected) return this.api
+    if (this.connecting) return this.connecting
 
-    const provider = new WsProvider(this.endpoint)
-    this.api = await ApiPromise.create({
-      provider,
-      types: awarizonTypes,
-      rpc: awarizonRpc,
-    })
+    this.connecting = (async () => {
+      const provider = new WsProvider(this.endpoint)
+      const api = await ApiPromise.create({
+        provider,
+        types: awarizonTypes,
+        rpc: awarizonRpc,
+      })
+      await api.isReady
+      this.api = api
+      return api
+    })()
 
-    await this.api.isReady
-    return this.api
+    try {
+      return await this.connecting
+    } finally {
+      this.connecting = null
+    }
   }
 
   async disconnect(): Promise<void> {

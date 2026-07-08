@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 interface AddressProps {
   value: string
   className?: string
@@ -6,12 +8,12 @@ interface AddressProps {
 export function Address({ value, className = '' }: AddressProps) {
   const display = `${value.slice(0, 8)}…${value.slice(-6)}`
   return (
-    <span
-      className={`font-mono text-awz-text text-sm cursor-pointer hover:text-awz-green transition-colors ${className}`}
-      onClick={() => navigator.clipboard.writeText(value)}
+    <Link
+      to={`/account?address=${encodeURIComponent(value)}`}
+      className={`font-mono text-awz-text text-sm hover:text-awz-green transition-colors ${className}`}
       title={value}
     >
       {display}
-    </span>
+    </Link>
   )
 }

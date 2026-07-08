@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "lib": ["ES2020", "DOM"]
-  }
-}

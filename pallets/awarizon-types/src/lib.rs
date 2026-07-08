@@ -287,6 +287,23 @@ where
 mod tests;
 
 // ============================================================
+// EPOCH REWARD DISTRIBUTOR HOOK
+// ============================================================
+
+/// Lets a pallet that owns the "when does an epoch advance" clock (awarizon-state)
+/// trigger reward distribution in the staking pallet (awarizon-consensus) without
+/// the two pallets depending on each other directly.
+pub trait EpochRewardDistributor {
+    fn distribute_epoch_rewards(epoch: u64) -> frame_support::pallet_prelude::DispatchResult;
+}
+
+impl EpochRewardDistributor for () {
+    fn distribute_epoch_rewards(_epoch: u64) -> frame_support::pallet_prelude::DispatchResult {
+        Ok(())
+    }
+}
+
+// ============================================================
 // CHAIN TYPE (for cross-chain address linking)
 // ============================================================
 

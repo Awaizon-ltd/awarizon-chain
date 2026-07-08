@@ -220,5 +220,56 @@ export const awarizonRpc = {
       params: [],
       type: 'Json',
     },
+    getRecentTransactions: {
+      description: 'Get recent transactions across the chain',
+      params: [],
+      type: 'Json',
+    },
+    getBlockTransactions: {
+      description: 'Get all transactions in a specific block',
+      params: [{ name: 'block_number', type: 'u32' }],
+      type: 'Json',
+    },
+
+    // Identity endpoints
+    getIdentity: {
+      description: 'Get identity record for an account',
+      params: [
+        { name: 'account', type: 'Text' },
+        { name: 'at', type: 'Option<Hash>' },
+      ],
+      type: 'Json',
+    },
+    lookupName: {
+      description: 'Resolve a .riz name to an account and identity',
+      params: [
+        { name: 'name', type: 'Text' },
+        { name: 'at', type: 'Option<Hash>' },
+      ],
+      type: 'Json',
+    },
+    isNameAvailable: {
+      description: 'Check if a .riz name is available to register',
+      params: [
+        { name: 'name', type: 'Text' },
+        { name: 'at', type: 'Option<Hash>' },
+      ],
+      type: 'bool',
+    },
+    getTotalIdentities: {
+      description: 'Get total number of registered identities',
+      params: [{ name: 'at', type: 'Option<Hash>' }],
+      type: 'u32',
+    },
+
+    // Links endpoints
+    getLinkedAddresses: {
+      description: 'Get all linked external addresses for an account',
+      params: [
+        { name: 'account', type: 'Text' },
+        { name: 'at', type: 'Option<Hash>' },
+      ],
+      type: 'Json',
+    },
   },
 }

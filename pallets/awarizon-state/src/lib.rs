@@ -39,7 +39,7 @@ pub mod pallet {
     };
     use pallet_awarizon_types::{
         AppCategory, AppManifest, Campaign, CampaignStatus, DeveloperProfile, DeveloperStatus,
-        InboxRecord, InboxRecordStatus, TargetingCriteria,
+        EpochRewardDistributor, InboxRecord, InboxRecordStatus, TargetingCriteria,
     };
 
     const INBOX_PRUNING_THRESHOLD_BLOCKS: u64 = 864_000;
@@ -70,6 +70,10 @@ pub mod pallet {
         type VerificationStakeThreshold: Get<u128>;
         type InboxStateReserveAccount: Get<Self::AccountId>;
         type AuthorityId: frame_system::offchain::AppCrypto<MultiSigner, MultiSignature>;
+
+        /// Notified exactly once per epoch advance so the staking pallet can run its
+        /// reward distribution without a direct crate dependency between the two pallets.
+        type RewardDistributor: pallet_awarizon_types::EpochRewardDistributor;
     }
 
     // ================================================================
@@ -365,14 +369,17 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_finalize(n: BlockNumberFor<T>) {
-            let count = frame_system::Pallet::<T>::extrinsic_count();
-            TotalExtrinsics::<T>::mutate(|total| {
-                *total = total.saturating_add(count as u64);
-            });
-            if count > 0 {
+            let all_count = frame_system::Pallet::<T>::extrinsic_count();
+            // Index 0 is always the timestamp inherent; only count user-submitted
+            // extrinsics (index 1+) so TotalExtrinsics reflects real user activity.
+            let user_count = all_count.saturating_sub(1);
+            if user_count > 0 {
+                TotalExtrinsics::<T>::mutate(|total| {
+                    *total = total.saturating_add(user_count as u64);
+                });
                 let block_number: u32 = n.saturated_into();
                 RecentTransactions::<T>::mutate(|txs| {
-                    for ext_index in 0..count {
+                    for ext_index in 1..all_count {
                         if txs.len() >= 50 {
                             txs.remove(0);
                         }
@@ -830,6 +837,7 @@ pub mod pallet {
                 *e
             });
             EpochStartBlock::<T>::put(current_block);
+            T::RewardDistributor::distribute_epoch_rewards(new_epoch)?;
             Self::deposit_event(Event::EpochAdvanced { epoch: new_epoch, start_block: current_block });
             Ok(())
         }
@@ -920,6 +928,7 @@ pub mod pallet {
                 *e
             });
             EpochStartBlock::<T>::put(current_block);
+            T::RewardDistributor::distribute_epoch_rewards(new_epoch)?;
             Self::deposit_event(Event::EpochAdvanced { epoch: new_epoch, start_block: current_block });
             Ok(())
         }

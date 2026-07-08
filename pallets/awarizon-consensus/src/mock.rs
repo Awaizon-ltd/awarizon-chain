@@ -1,4 +1,4 @@
-use frame_support::{construct_runtime, derive_impl, parameter_types, traits::ConstU32};
+use frame_support::{construct_runtime, derive_impl, parameter_types, traits::ConstU32, PalletId};
 use sp_runtime::BuildStorage;
 
 pub type Block = frame_system::mocking::MockBlock<Test>;
@@ -20,6 +20,10 @@ impl frame_system::Config for Test {
 parameter_types! {
     pub const ExistentialDeposit: u128 = 1;
     pub const MinValidatorStakeVal: u128 = 1_000u128;
+    pub const ValidatorRewardsPalletIdVal: PalletId = PalletId(*b"riz/vldr");
+    pub const FeePoolPalletIdVal: PalletId = PalletId(*b"riz/fees");
+    pub const InsurancePalletIdVal: PalletId = PalletId(*b"riz/insr");
+    pub const InboxReserveAccountVal: u64 = 999u64;
 }
 
 impl pallet_balances::Config for Test {
@@ -43,6 +47,11 @@ impl crate::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinValidatorStake = MinValidatorStakeVal;
+    type ValidatorRewardsPalletId = ValidatorRewardsPalletIdVal;
+    type FeePoolPalletId = FeePoolPalletIdVal;
+    type InsurancePalletId = InsurancePalletIdVal;
+    type InboxReserveAccount = InboxReserveAccountVal;
+    type ForceOrigin = frame_system::EnsureRoot<u64>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

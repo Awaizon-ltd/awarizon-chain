@@ -38,7 +38,7 @@ export async function signAndSend(
   api: ApiPromise,
   extrinsic: SubmittableExtrinsic<'promise', ISubmittableResult>,
   signer: KeyringPair
-): Promise<{ blockHash: string; txHash: string }> {
+): Promise<{ blockHash: string; txHash: string; blockNumber: number }> {
   return new Promise((resolve, reject) => {
     extrinsic
       .signAndSend(signer, ({ status, dispatchError }: ISubmittableResult) => {
@@ -46,12 +46,13 @@ export async function signAndSend(
           if (dispatchError) {
             reject(parseChainError(dispatchError.toString()))
           } else {
-            resolve({
-              blockHash: status.isInBlock
-                ? status.asInBlock.toHex()
-                : status.asFinalized.toHex(),
-              txHash: extrinsic.hash.toHex(),
-            })
+            const blockHash = status.isInBlock
+              ? status.asInBlock.toHex()
+              : status.asFinalized.toHex()
+            const txHash = extrinsic.hash.toHex()
+            api.rpc.chain.getHeader(blockHash)
+              .then(header => resolve({ blockHash, txHash, blockNumber: header.number.toNumber() }))
+              .catch(() => resolve({ blockHash, txHash, blockNumber: 0 }))
           }
         }
       })

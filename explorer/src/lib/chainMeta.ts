@@ -2,7 +2,7 @@
 // system_properties, state_getRuntimeVersion). Keep in sync if the chain is upgraded.
 export const AWARIZON_CHAIN = {
   chainName: 'Awarizon Testnet',
-  genesisHash: '0xc5df1d28a46fdbb17aebce9d2bdede9af419f2faa45ec7c3138dd7cb2b276dc3',
+  genesisHash: '0xaa202ce58be21cbb1959cdd28c52248203a47fd1fe53a74ad5139f5318101ca5',
   rpcUrl: 'wss://rpc.awarizon.com',
   tokenSymbol: 'RIZ',
   tokenDecimals: 12,

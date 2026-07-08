@@ -5,8 +5,8 @@ pub const MICRO_RIZ: u128 = 1_000_000;   // 10^6 planck units
 pub const MILLI_RIZ: u128 = 1_000_000_000; // 10^9 planck units
 
 // Consensus
-pub const GENESIS_VALIDATORS: u32 = 51;
-pub const TARGET_VALIDATORS: u32 = 121;
+pub const GENESIS_VALIDATORS: u32 = 21;
+pub const TARGET_VALIDATORS: u32 = 21;
 pub const BLOCK_TIME_SECONDS: u32 = 3;
 pub const EPOCH_LENGTH_BLOCKS: u32 = 28_800;
 pub const BFT_FAULT_TOLERANCE: u32 = 17;
@@ -42,6 +42,8 @@ pub const INBOX_ARCHIVE_MONTHS: u32 = 12;
 // Geographic caps (basis points)
 pub const MAX_VALIDATORS_PER_REGION_BPS: u32 = 2_000; // 20%
 pub const MAX_VALIDATORS_PER_COUNTRY_BPS: u32 = 1_000; // 10%
+pub const MIN_VALIDATORS_PER_REGION: u32 = 3;  // floor: always allow at least 3 per region
+pub const MIN_VALIDATORS_PER_COUNTRY: u32 = 2; // floor: always allow at least 2 per country
 
 // Inbox State Reserve — bytes32 of "INBOXX"
 // Explicit array to stay compatible with Rust 1.82 (const IndexMut landed in 1.83)
@@ -124,3 +126,63 @@ pub const REPUTATION_PER_ENGAGEMENT: u32 = 10;
 pub const REPUTATION_DEVELOPER_REGISTERED: u32 = 200;
 pub const REPUTATION_VALIDATOR_REGISTERED: u32 = 500;
 pub const REPUTATION_CREATOR_PROGRAM: u32 = 150;
+
+// ============================================================
+// STAKING ECONOMY — yield reserve, fee split, commission, slashing
+// ============================================================
+
+/// Daily emission from the 250M RIZ yield reserve.
+/// 15,000 RIZ/day gives ~45 year reserve duration.
+/// At testnet with 21 active validators:
+///   Base pool (60%): 9,000 RIZ/day = ~428 RIZ/validator/day
+///   Perf pool (20%): 3,000 RIZ/day = ~142 RIZ/validator/day (at 100% uptime)
+///   Stake pool (20%): 3,000 RIZ/day split by stake weight
+pub const YIELD_RESERVE_DAILY_EMISSION: u128 = 15_000_000_000_000_000u128; // 15,000 RIZ/day
+pub const YIELD_RESERVE_TOTAL: u128 = 250_000_000_000_000_000_000u128; // 250M RIZ
+
+/// Base reward pool percentage (of staking pool).
+/// Equal split among all active validators.
+pub const BASE_REWARD_PCT: u32 = 60;
+
+/// Performance bonus pool percentage (of staking pool).
+/// Proportional to validator uptime_bps score.
+pub const PERF_REWARD_PCT: u32 = 20;
+
+/// Stake-weighted pool percentage (of staking pool).
+/// Distributed by total stake, validator takes commission.
+pub const STAKE_REWARD_PCT: u32 = 20;
+
+/// Maximum active validators in testnet. Increase via governance for mainnet.
+pub const MAX_ACTIVE_VALIDATORS: u32 = 21;
+
+/// Per-epoch performance multiplier denominator.
+/// uptime_bps is in basis points (10_000 = 100%).
+pub const BPS_DENOMINATOR: u128 = 10_000;
+
+// Fee split (per epoch)
+pub const FEE_SPLIT_STAKING_PCT: u32 = 60;
+pub const FEE_SPLIT_INBOX_PCT: u32 = 20;
+pub const FEE_SPLIT_BURN_PCT: u32 = 20;
+
+// Commission range
+pub const MIN_COMMISSION: u32 = 0;
+pub const MAX_COMMISSION: u32 = 20;
+
+// Slashing (per mille)
+pub const SLASH_OFFLINE: u32 = 10; // 1%
+pub const SLASH_DOUBLE_SIGN: u32 = 50; // 5%
+
+// Slash fund split
+pub const SLASH_BURN_PCT: u32 = 50;
+pub const SLASH_INSURANCE_PCT: u32 = 50;
+
+// Offline threshold before slash
+pub const OFFLINE_SLASH_THRESHOLD: u32 = 100;
+
+// PalletIds — 8 bytes each
+pub const VALIDATOR_REWARDS_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/vldr"); // yield reserve
+pub const FEE_POOL_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/fees"); // epoch fee collection
+pub const INSURANCE_POOL_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/insr"); // slash insurance

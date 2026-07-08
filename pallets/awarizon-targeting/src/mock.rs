@@ -60,6 +60,7 @@ impl pallet_awarizon_state::Config for Test {
     type VerificationStakeThreshold = VerificationStakeThreshold;
     type InboxStateReserveAccount = InboxStateReserveAccountId;
     type AuthorityId = pallet_awarizon_state::crypto::AwarizonAuthId;
+    type RewardDistributor = ();
 }
 
 impl crate::Config for Test {

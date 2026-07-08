@@ -15,6 +15,8 @@ import {
   getDeveloperManifests,
   getInboxCount,
   getWalletTargetingProfile,
+  getIdentity,
+  getRecentTransactions,
 } from '@awarizon/sdk'
 
 export interface LatestBlock {
@@ -196,6 +198,62 @@ export function useBalance(address: string) {
   })
 }
 
+// Identity .riz name for an address — stale after 60s
+export function useIdentityName(address: string | undefined) {
+  return useQuery<string | null>({
+    queryKey: ['identityName', address],
+    queryFn: async () => {
+      if (!address) return null
+      const client = await getClient()
+      const identity = await getIdentity(client.getApi(), address)
+      return identity?.rizNameFull ?? null
+    },
+    enabled: !!address,
+    staleTime: 60_000,
+    gcTime: 300_000,
+  })
+}
+
+// Full identity record including display name, bio, reputation, etc.
+export function useIdentity(address: string) {
+  return useQuery({
+    queryKey: ['identity', address],
+    queryFn: async () => {
+      if (!address) return null
+      const client = await getClient()
+      return getIdentity(client.getApi(), address)
+    },
+    enabled: !!address,
+    staleTime: 60_000,
+    gcTime: 300_000,
+  })
+}
+
+// Full system account data — free balance, reserved, total, nonce
+export interface AccountInfo {
+  free: bigint
+  reserved: bigint
+  total: bigint
+  nonce: number
+}
+
+export function useAccountInfo(address: string) {
+  return useQuery<AccountInfo | null>({
+    queryKey: ['accountInfo', address],
+    queryFn: async () => {
+      if (!address) return null
+      const client = await getClient()
+      const api = client.getApi()
+      const account = await (api.query as any).system.account(address)
+      const free = BigInt(account.data.free.toString())
+      const reserved = BigInt(account.data.reserved.toString())
+      return { free, reserved, total: free + reserved, nonce: Number(account.nonce.toString()) }
+    },
+    enabled: !!address,
+    refetchInterval: 12000,
+  })
+}
+
 // Live block subscription — pushes into query cache via subscribeNewBlocks
 export function useLatestBlock() {
   const queryClient = useQueryClient()
@@ -249,6 +307,16 @@ export interface TxInfo {
   timestamp: number
   type: string
 }
+
+export interface TpsPoint {
+  t: number   // unix ms timestamp
+  tps: number
+}
+
+// ── txHashCache ────────────────────────────────────────────────────
+// Module-level map populated by useLiveChainData. Allows Blocks.tsx
+// to resolve a tx hash to its block + index without extra RPC calls.
+export const txHashCache = new Map<string, { blockNumber: number; index: number }>()
 
 // Map pallet section + method to a human-readable transaction type label.
 // Section names come from polkadot.js metadata (camelCase pallet names).
@@ -304,36 +372,136 @@ export function timeAgo(ts: number): string {
   return `${Math.floor(s / 3600)}h ago`
 }
 
+// ── Paginated blocks query ─────────────────────────────────────────
+// page 0 = newest [baseBlock … baseBlock-pageSize+1]
+// page 1 = [baseBlock-pageSize … baseBlock-2*pageSize+1], etc.
+export function useBlocksPage(baseBlock: number, page: number, pageSize = 20) {
+  return useQuery<BlockInfo[]>({
+    queryKey: ['blocksPage', baseBlock, page, pageSize],
+    queryFn: async () => {
+      if (baseBlock === 0) return []
+      const client = await getClient()
+      const api = client.getApi()
+      const start = baseBlock - page * pageSize
+      if (start < 0) return []
+      const nums = Array.from({ length: pageSize }, (_, i) => start - i).filter(n => n >= 0)
+      const results = await Promise.allSettled(nums.map(async (n) => {
+        const hash = await (api.rpc.chain as any).getBlockHash(n)
+        if (hash.isEmpty) return null
+        const signed = await (api.rpc.chain as any).getBlock(hash)
+        const exts: any[] = Array.from(signed.block.extrinsics)
+        // Extract timestamp from timestamp.set args — avoids an extra storage query
+        const tsExt = exts.find((e: any) => e.method?.section === 'timestamp' && e.method?.method === 'set')
+        const blockTs = tsExt ? Number((tsExt.method.args[0] as any).toString()) : 0
+        const userExts = exts.filter((e: any) => {
+          const s: string = e.method?.section ?? ''
+          return s !== 'timestamp' && s !== 'parachainSystem'
+        })
+        return { number: n, hash: hash.toHex(), timestamp: blockTs, extrinsicCount: userExts.length } as BlockInfo
+      }))
+      return results
+        .filter((r): r is PromiseFulfilledResult<BlockInfo> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value)
+    },
+    enabled: baseBlock > 0,
+    staleTime: 30_000,
+  })
+}
+
 // ── useLiveChainData ───────────────────────────────────────────────
 // Subscribes to new blocks, parses extrinsics, maintains rolling
-// windows for blocks (last 20) and transactions (last 50).
+// windows for blocks (last 10) and transactions (last 10).
+// Pre-fetches the last 10 blocks on mount so UI starts full — no
+// awkward grow-from-empty animation.
 
 export function useLiveChainData() {
   const [latestBlockNumber, setLatestBlockNumber] = useState(0)
   const [tps, setTps] = useState(0)
+  const [tpsHistory, setTpsHistory] = useState<TpsPoint[]>([])
   const [blocks, setBlocks] = useState<BlockInfo[]>([])
   const [txs, setTxs] = useState<TxInfo[]>([])
 
   useEffect(() => {
     let cleanup: (() => void) | null = null
-    // Tracks which block numbers have already been processed.
-    // Guards against React StrictMode double-invoking effects (which creates
-    // two active subscriptions) and against nodes that re-broadcast the same head.
+    // Guards against duplicate block processing from StrictMode double-invoke
+    // and nodes that re-broadcast the same head.
     const seen = new Set<number>()
     const recentCounts: number[] = []
 
     getClient()
       .then(async (client) => {
+        const api = client.getApi()
+
+        // ── Pre-fetch last 10 blocks + seed from getRecentTransactions ──
+        try {
+          const latestHeader = await (api.rpc.chain as any).getHeader()
+          const latestNum: number = latestHeader.number.toNumber()
+
+          // Pull the last 50 user txs stored on-chain. Extract block numbers so
+          // we can also fetch any blocks that hold recent txs but fall outside
+          // the 10-block window (e.g. the block that held a tx from 2 minutes ago).
+          let recentTxBlockNums: number[] = []
+          try {
+            const recentTxs = await getRecentTransactions(api)
+            recentTxBlockNums = [...new Set(recentTxs.map(t => t.block_number))]
+          } catch { /* not fatal */ }
+
+          const windowNums = Array.from({ length: 10 }, (_, i) => latestNum - i).filter(n => n >= 0)
+          // Merge: window blocks + any extra blocks that had user txs, deduplicated
+          const preloadNums = [...new Set([...windowNums, ...recentTxBlockNums])].sort((a, b) => b - a)
+          // Mark pre-loaded blocks as seen so the subscription won't re-process them
+          preloadNums.forEach(n => seen.add(n))
+
+          const preloadResults = await Promise.allSettled(preloadNums.map(async (n) => {
+            const hash = await (api.rpc.chain as any).getBlockHash(n)
+            const signed = await (api.rpc.chain as any).getBlock(hash)
+            const exts: any[] = Array.from(signed.block.extrinsics)
+            const tsExt = exts.find((e: any) => e.method?.section === 'timestamp' && e.method?.method === 'set')
+            const blockTs = tsExt
+              ? Number((tsExt.method.args[0] as any).toString())
+              : Date.now() - (latestNum - n) * 3000
+            const userExts = exts.filter((e: any) => {
+              const s: string = e.method?.section ?? ''
+              return s !== 'timestamp' && s !== 'parachainSystem'
+            })
+            const txInfos: TxInfo[] = userExts.map((ext: any) => {
+              const section: string = ext.method?.section ?? 'unknown'
+              const method: string  = ext.method?.method  ?? 'unknown'
+              const txHash: string  = ext.hash?.toHex?.() ?? '0x'
+              txHashCache.set(txHash, { blockNumber: n, index: exts.indexOf(ext) })
+              return { blockNumber: n, index: exts.indexOf(ext), hash: txHash, section, method, isSigned: Boolean(ext.isSigned), timestamp: blockTs, type: classifyExtrinsic(section, method) }
+            })
+            return {
+              block: { number: n, hash: hash.toHex(), timestamp: blockTs, extrinsicCount: userExts.length } as BlockInfo,
+              txs: txInfos,
+            }
+          }))
+
+          const preBlocks: BlockInfo[] = []
+          const preTxs: TxInfo[] = []
+          for (const r of preloadResults) {
+            if (r.status === 'fulfilled') {
+              preBlocks.push(r.value.block)
+              preTxs.push(...r.value.txs)
+            }
+          }
+          preBlocks.sort((a, b) => b.number - a.number)
+          preTxs.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index)
+
+          setLatestBlockNumber(preBlocks[0]?.number ?? latestNum)
+          setBlocks(preBlocks)
+          setTxs(preTxs.slice(0, 10))
+        } catch {
+          // pre-fetch failure is non-fatal — subscription will still populate
+        }
+
+        // ── Live subscription ──────────────────────────────────────
         cleanup = await client.subscribeNewBlocks((blockNumber: number, blockHash: string) => {
-          if (seen.has(blockNumber)) return   // already handled — skip
+          if (seen.has(blockNumber)) return
           seen.add(blockNumber)
 
           void (async () => {
             try {
-              const api = client.getApi()
-              // Fetch block body and on-chain timestamp storage in parallel.
-              // api.query.timestamp.now.at(hash) reads storage directly —
-              // no codec ambiguity around Compact<u64>.
               const [signed, tsRaw] = await Promise.all([
                 (api.rpc.chain as any).getBlock(blockHash),
                 (api.query as any).timestamp.now.at(blockHash),
@@ -341,36 +509,28 @@ export function useLiveChainData() {
               const exts: any[] = Array.from(signed.block.extrinsics)
               const blockTs: number = tsRaw ? Number(tsRaw.toString()) : Date.now()
 
-              recentCounts.push(exts.length)
-              if (recentCounts.length > 10) recentCounts.shift()
-              const newTps = recentCounts.reduce((s: number, n: number) => s + n, 0) / 30
-
-              // Exclude inherents from the user-facing tx list.
               const userExts = exts.filter((e: any) => {
                 const s: string = e.method?.section ?? ''
                 return s !== 'timestamp' && s !== 'parachainSystem'
               })
 
+              recentCounts.push(userExts.length)
+              if (recentCounts.length > 10) recentCounts.shift()
+              // TPS = avg user extrinsics per block ÷ 3s block time
+              const newTps = recentCounts.reduce((s: number, n: number) => s + n, 0) / (recentCounts.length * 3)
+
               const newTxs: TxInfo[] = userExts.map((ext: any) => {
                 const section: string = ext.method?.section ?? 'unknown'
                 const method: string  = ext.method?.method  ?? 'unknown'
-                return {
-                  blockNumber,
-                  index: exts.indexOf(ext),
-                  hash: ext.hash?.toHex?.() ?? '0x',
-                  section,
-                  method,
-                  isSigned: Boolean(ext.isSigned),
-                  timestamp: blockTs,
-                  type: classifyExtrinsic(section, method),
-                }
+                const txHash: string  = ext.hash?.toHex?.() ?? '0x'
+                txHashCache.set(txHash, { blockNumber, index: exts.indexOf(ext) })
+                return { blockNumber, index: exts.indexOf(ext), hash: txHash, section, method, isSigned: Boolean(ext.isSigned), timestamp: blockTs, type: classifyExtrinsic(section, method) }
               })
 
               setLatestBlockNumber(blockNumber)
               setTps(newTps)
+              setTpsHistory(prev => [...prev, { t: blockTs, tps: newTps }].slice(-30))
               setBlocks(prev => {
-                // Safety dedup: if this block number snuck in before the seen
-                // guard fired (async gap), don't add it twice.
                 if (prev.some(b => b.number === blockNumber)) return prev
                 return [
                   { number: blockNumber, hash: blockHash, timestamp: blockTs, extrinsicCount: userExts.length },
@@ -391,5 +551,5 @@ export function useLiveChainData() {
     }
   }, [])
 
-  return { latestBlockNumber, tps, blocks, txs }
+  return { latestBlockNumber, tps, tpsHistory, blocks, txs }
 }

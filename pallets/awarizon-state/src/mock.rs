@@ -60,6 +60,7 @@ impl crate::Config for Test {
     type VerificationStakeThreshold = VerificationStakeThreshold;
     type InboxStateReserveAccount = InboxStateReserveAccountId;
     type AuthorityId = crate::crypto::AwarizonAuthId;
+    type RewardDistributor = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

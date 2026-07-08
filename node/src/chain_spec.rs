@@ -40,3 +40,17 @@ pub fn local_chain_spec() -> Result<ChainSpec, String> {
 	.with_properties(awarizon_properties())
 	.build())
 }
+
+pub fn public_testnet_chain_spec() -> Result<ChainSpec, String> {
+	Ok(ChainSpec::builder(
+		WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
+		None,
+	)
+	.with_name("Awarizon Public Testnet")
+	.with_id("public_testnet")
+	.with_chain_type(ChainType::Live)
+	.with_genesis_config_preset_name("public-testnet")
+	.with_protocol_id("awarizon")
+	.with_properties(awarizon_properties())
+	.build())
+}

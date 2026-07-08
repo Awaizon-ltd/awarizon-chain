@@ -92,147 +92,155 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      {/* ── Banner background ──────────────────────────────────── */}
-      <div
-        className="relative w-full flex flex-col justify-center"
-        style={{
-          backgroundImage: 'url(/banner.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-          minHeight: '40vh',
-        }}
-      >
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/40 transition-colors duration-300" />
-
-        <div className="relative z-10 w-full px-4 sm:px-6">
-
-          {/* ── Row 1: Brand + Nav ─────────────────────────────── */}
-          <div className="flex items-center justify-between h-20 sm:h-[88px]">
-
-            {/* Brand */}
-            <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
-              <div className="bg-black/60 ring-1 ring-awz-gold/40 rounded-xl p-1.5 group-hover:ring-awz-gold/70 transition-all">
-                <img
-                  src="/logo.png"
-                  alt="Awarizon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 object-contain"
-                />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-awz-gold font-bold text-base sm:text-xl tracking-[0.15em] font-mono">
-                  RIZSCAN
-                </span>
-                <span className="text-white/45 text-[9px] sm:text-[10px] font-mono tracking-widest uppercase hidden xs:block">
-                  Awarizon Network Explorer
-                </span>
-              </div>
-            </Link>
-
-            {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
-              {NAV.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-mono tracking-wide transition-all whitespace-nowrap ${
-                    isActive(item.path)
-                      ? 'bg-awz-gold/20 text-awz-gold font-semibold'
-                      : 'text-white/65 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <div className="w-px h-5 bg-white/20 mx-2" />
-              <AddChainButton variant="banner" />
-              <div className="w-px h-5 bg-white/20 mx-2" />
-              <button
-                onClick={toggle}
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="p-2 rounded-lg text-white/55 hover:text-awz-gold hover:bg-white/10 transition-all"
-              >
-                {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-              </button>
-            </nav>
-
-            {/* Mobile: theme toggle + hamburger */}
-            <div className="flex md:hidden items-center gap-1.5">
-              <button
-                onClick={toggle}
-                aria-label="Toggle theme"
-                className="p-2 rounded-lg text-white/55 hover:text-awz-gold transition-all"
-              >
-                {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-              </button>
-              <button
-                onClick={() => setMobileOpen((o) => !o)}
-                aria-label="Toggle menu"
-                className="p-2 rounded-lg text-white/65 hover:text-white transition-all"
-              >
-                {mobileOpen ? <XIcon /> : <MenuIcon />}
-              </button>
-            </div>
-          </div>
-
-          {/* ── Row 2: Search ──────────────────────────────────── */}
-          <div className="pb-5 sm:pb-7">
-            <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-              <div className="relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-awz-gold transition-colors duration-200">
-                  <SearchIcon size={20} />
-                </span>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by address, block number, block hash, or tx hash…"
-                  className={[
-                    'w-full rounded-xl pl-12 pr-14 py-3.5 sm:py-4',
-                    'bg-white/10 dark:bg-black/40 backdrop-blur-md',
-                    'border border-white/20 dark:border-white/10',
-                    'focus:border-awz-gold/70 focus:bg-white/15 dark:focus:bg-black/50',
-                    'text-white text-sm sm:text-base placeholder:text-white/35',
-                    'outline-none transition-all duration-200',
-                    'font-mono',
-                  ].join(' ')}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-awz-gold hover:bg-awz-gold-dim text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-150 font-mono"
-                >
-                  GO
-                </button>
-              </div>
-              <p className="text-center text-white/30 text-xs font-mono mt-2.5 hidden sm:block">
-                address · .riz name · block number · block hash · tx hash
-              </p>
-            </form>
-          </div>
-        </div>
+      {/* Blurred banner-image backdrop — overflow-hidden scoped to just this layer, ── */}
+      {/* so it doesn't clip the mobile drawer overlay below.                      ── */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden>
+        <div
+          className="absolute inset-0 scale-110"
+          style={{
+            backgroundImage: 'url(/banner.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+            filter: 'blur(3px)',
+          }}
+        />
+        <div className="absolute inset-0 bg-black/55" />
       </div>
 
-      {/* ── Mobile nav drawer ─────────────────────────────────────── */}
-      {mobileOpen && (
-        <div className="md:hidden bg-awz-bg border-b border-awz-border shadow-2xl">
-          <nav className="w-full px-4 py-3 flex flex-col gap-0.5">
+      <div className="relative z-10 w-full px-4 sm:px-6">
+
+        {/* ── Row 1: Brand + Nav ─────────────────────────────── */}
+        <div className="flex items-center justify-between h-16 sm:h-20">
+
+          {/* Brand */}
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
+            <div className="bg-black/60 ring-1 ring-awz-gold/40 rounded-xl p-1.5 group-hover:ring-awz-gold/70 transition-all">
+              <img
+                src="/logo.png"
+                alt="Awarizon"
+                className="h-7 w-7 sm:h-9 sm:w-9 object-contain"
+              />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-awz-gold font-bold text-base sm:text-xl tracking-[0.15em] font-mono">
+                RIZSCAN
+              </span>
+              <span className="text-white/45 text-[9px] sm:text-[10px] font-mono tracking-widest uppercase hidden xs:block">
+                Awarizon Network Explorer
+              </span>
+            </div>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
             {NAV.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-4 py-3 rounded-lg text-sm font-mono transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-mono tracking-wide transition-all whitespace-nowrap ${
                   isActive(item.path)
-                    ? 'bg-awz-gold/10 text-awz-gold font-semibold'
-                    : 'text-awz-text hover:bg-awz-surface hover:text-awz-gold'
+                    ? 'bg-awz-gold/20 text-awz-gold font-semibold'
+                    : 'text-white/65 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {item.label}
               </Link>
             ))}
+            <div className="w-px h-5 bg-white/20 mx-2" />
+            <AddChainButton variant="banner" />
+            <div className="w-px h-5 bg-white/20 mx-2" />
+            <button
+              onClick={toggle}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="p-2 rounded-lg text-white/55 hover:text-awz-gold hover:bg-white/10 transition-all"
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
           </nav>
+
+          {/* Mobile: search shortcut + theme toggle + hamburger */}
+          <div className="flex md:hidden items-center gap-1.5">
+            <button
+              onClick={() => inputRef.current?.focus()}
+              aria-label="Go to search"
+              className="p-2 rounded-lg text-white/55 hover:text-awz-gold transition-all"
+            >
+              <SearchIcon size={18} />
+            </button>
+            <button
+              onClick={toggle}
+              aria-label="Toggle theme"
+              className="p-2 rounded-lg text-white/55 hover:text-awz-gold transition-all"
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-label="Toggle menu"
+              className="p-2 rounded-lg text-white/65 hover:text-white transition-all"
+            >
+              {mobileOpen ? <XIcon /> : <MenuIcon />}
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* ── Row 2: Search ──────────────────────────────────── */}
+        <div className="pb-4 sm:pb-5">
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <div className="relative group">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-awz-gold transition-colors duration-200">
+                <SearchIcon size={20} />
+              </span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by address, block number, block hash, or tx hash…"
+                className={[
+                  'w-full rounded-xl pl-12 pr-14 py-3 sm:py-3.5',
+                  'bg-white/10 dark:bg-black/40 backdrop-blur-md',
+                  'border border-white/20 dark:border-white/10',
+                  'focus:border-awz-gold/70 focus:bg-white/15 dark:focus:bg-black/50',
+                  'text-white text-sm sm:text-base placeholder:text-white/35',
+                  'outline-none transition-all duration-200',
+                  'font-mono',
+                ].join(' ')}
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-awz-gold hover:bg-awz-gold-dim text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-150 font-mono"
+              >
+                GO
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* ── Mobile nav drawer — overlay, slides/fades in without pushing ── */}
+      {/* ── page content down or affecting the header's own height.    ── */}
+      <div
+        className={`md:hidden absolute left-0 right-0 top-full bg-awz-bg border-b border-awz-border shadow-2xl transition-all duration-200 ease-out ${
+          mobileOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}
+      >
+        <nav className="w-full px-4 py-3 flex flex-col gap-0.5">
+          {NAV.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`px-4 py-3 rounded-lg text-sm font-mono transition-all ${
+                isActive(item.path)
+                  ? 'bg-awz-gold/10 text-awz-gold font-semibold'
+                  : 'text-awz-text hover:bg-awz-surface hover:text-awz-gold'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </header>
   )
 }

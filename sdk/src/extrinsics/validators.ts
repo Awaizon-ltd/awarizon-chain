@@ -6,6 +6,14 @@
 // call_index 3: update_performance(validator, uptime_bps, finality_bps, blocks_bps)
 // call_index 4: run_epoch_election(epoch: u64)
 // call_index 5: slash_validator(validator: AccountId, reason: u8)  — root only
+// call_index 6: set_commission(commission: u32)
+// call_index 7: claim_validator_reward()
+// call_index 8: claim_delegation_reward(validator: AccountId)
+// call_index 9: claim_all_delegation_rewards()
+// call_index 10: report_offline(validator: AccountId, missed_blocks: u32)
+// call_index 11: report_double_sign(validator: AccountId)  — root only
+// call_index 12: claim_slash_compensation(validator: AccountId)
+// call_index 13: init_yield_reserve()  — root only
 
 import { ApiPromise } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
@@ -63,4 +71,58 @@ export function buildSlashValidator(
   reason: number      // u8
 ): SubmittableExtrinsic<'promise', ISubmittableResult> {
   return api.tx.awarizonConsensus.slashValidator(validator, reason)
+}
+
+export function buildSetCommission(
+  api: ApiPromise,
+  commission: number  // u32, 0-20
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.setCommission(commission)
+}
+
+export function buildClaimValidatorReward(
+  api: ApiPromise
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.claimValidatorReward()
+}
+
+export function buildClaimDelegationReward(
+  api: ApiPromise,
+  validator: string  // SS58 address
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.claimDelegationReward(validator)
+}
+
+export function buildClaimAllDelegationRewards(
+  api: ApiPromise
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.claimAllDelegationRewards()
+}
+
+export function buildReportOffline(
+  api: ApiPromise,
+  validator: string,   // SS58 address
+  missedBlocks: number // u32
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.reportOffline(validator, missedBlocks)
+}
+
+export function buildReportDoubleSign(
+  api: ApiPromise,
+  validator: string  // SS58 address
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.reportDoubleSign(validator)
+}
+
+export function buildClaimSlashCompensation(
+  api: ApiPromise,
+  validator: string  // SS58 address
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.claimSlashCompensation(validator)
+}
+
+export function buildInitYieldReserve(
+  api: ApiPromise
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.initYieldReserve()
 }

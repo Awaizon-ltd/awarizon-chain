@@ -62,6 +62,7 @@ sp-transaction-pool.workspace = true
 sp-version = { features = ["serde"], workspace = true }
 pallet-contracts = { version = "=40.1.0", default-features = false }
 pallet-vesting.workspace = true
+hex-literal = { version = "0.4.1", default-features = false }
 
 [dev-dependencies]
 sp-io = { workspace = true, default-features = true }

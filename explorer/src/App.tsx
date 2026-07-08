@@ -8,9 +8,9 @@ import { Campaigns } from './pages/Campaigns'
 import { CampaignDetail } from './pages/CampaignDetail'
 import { BlockDetail } from './pages/BlockDetail'
 import { TransactionDetail } from './pages/TransactionDetail'
-import { Developers } from './pages/Developers'
 import { Account } from './pages/Account'
 import { ThemeContext, type Theme } from './hooks/useTheme'
+import { IndexerProvider } from './db/IndexerContext'
 
 function getInitialTheme(): Theme {
   try {
@@ -39,6 +39,7 @@ export function App() {
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>
+      <IndexerProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -49,11 +50,11 @@ export function App() {
             <Route path="campaigns/:id" element={<CampaignDetail />} />
             <Route path="block/:number" element={<BlockDetail />} />
             <Route path="tx/:blockNumber/:index" element={<TransactionDetail />} />
-            <Route path="developers" element={<Developers />} />
             <Route path="account" element={<Account />} />
           </Route>
         </Routes>
       </BrowserRouter>
+      </IndexerProvider>
     </ThemeContext.Provider>
   )
 }

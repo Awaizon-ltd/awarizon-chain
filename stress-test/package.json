@@ -1,0 +1,29 @@
+{
+  "name": "@awarizon/stress-test",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "wallet:generate": "tsx src/wallets.ts generate",
+    "wallet:fund": "tsx src/wallets.ts fund",
+    "test:transfers": "tsx src/run.ts transfers",
+    "test:named": "tsx src/run.ts named",
+    "test:identity": "tsx src/run.ts identity",
+    "test:mixed": "tsx src/run.ts mixed",
+    "test:progressive": "tsx src/run.ts progressive",
+    "benchmark": "tsx src/run.ts benchmark",
+    "report": "tsx src/report.ts"
+  },
+  "dependencies": {
+    "@awarizon/sdk": "file:../sdk",
+    "@polkadot/api": "^14.0.0",
+    "@polkadot/keyring": "^13.0.0",
+    "@polkadot/util": "^13.0.0",
+    "@polkadot/util-crypto": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

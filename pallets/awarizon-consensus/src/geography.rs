@@ -25,7 +25,18 @@ impl GeographyEnforcer {
         }
         let new_region_count = region_count + 1;
         let new_total = total_validators + 1;
-        new_region_count * 100 <= new_total * MAX_VALIDATORS_PER_REGION_BPS / 100
+
+        // Floor: always allow at least MIN_VALIDATORS_PER_REGION
+        // from any region regardless of percentage cap.
+        // Percentage cap only meaningful when active set
+        // is large enough for 20% to exceed the floor.
+        if new_region_count <= MIN_VALIDATORS_PER_REGION {
+            return true;
+        }
+
+        // Percentage check: region count must not exceed
+        // MAX_VALIDATORS_PER_REGION_BPS (2000 = 20%) of total
+        new_region_count * 10_000 <= new_total * MAX_VALIDATORS_PER_REGION_BPS
     }
 
     /// Returns true if adding one more validator from this country keeps the count
@@ -36,16 +47,31 @@ impl GeographyEnforcer {
         }
         let new_country_count = country_count + 1;
         let new_total = total_validators + 1;
-        new_country_count * 100 <= new_total * MAX_VALIDATORS_PER_COUNTRY_BPS / 100
+
+        // Floor: always allow at least MIN_VALIDATORS_PER_COUNTRY
+        // from any country regardless of percentage cap.
+        if new_country_count <= MIN_VALIDATORS_PER_COUNTRY {
+            return true;
+        }
+
+        // Percentage check: country count must not exceed
+        // MAX_VALIDATORS_PER_COUNTRY_BPS (1000 = 10%) of total
+        new_country_count * 10_000 <= new_total * MAX_VALIDATORS_PER_COUNTRY_BPS
     }
 
     /// Maximum validators allowed from one region given a total validator count.
     pub fn max_per_region(total_validators: u32) -> u32 {
-        total_validators * MAX_VALIDATORS_PER_REGION_BPS / 10_000
+        let pct_cap = total_validators
+            * MAX_VALIDATORS_PER_REGION_BPS
+            / 10_000;
+        pct_cap.max(MIN_VALIDATORS_PER_REGION)
     }
 
     /// Maximum validators allowed from one country given a total validator count.
     pub fn max_per_country(total_validators: u32) -> u32 {
-        total_validators * MAX_VALIDATORS_PER_COUNTRY_BPS / 10_000
+        let pct_cap = total_validators
+            * MAX_VALIDATORS_PER_COUNTRY_BPS
+            / 10_000;
+        pct_cap.max(MIN_VALIDATORS_PER_COUNTRY)
     }
 }

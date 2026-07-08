@@ -26,7 +26,10 @@
 // Substrate and Polkadot dependencies
 use frame_support::{
 	derive_impl, parameter_types,
-	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf, WithdrawReasons},
+	traits::{
+		ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, Imbalance, VariantCountOf,
+		WithdrawReasons,
+	},
 	weights::{
 		constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		Weight, WeightToFee,
@@ -41,10 +44,10 @@ use sp_version::RuntimeVersion;
 
 // Local module imports
 use super::{
-	AccountId, Aura, Balance, Balances, Block, BlockNumber, Hash, Nonce, PalletInfo,
-	RandomnessFromParentHash, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason,
-	RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Signature, System, Timestamp,
-	UncheckedExtrinsic, EXISTENTIAL_DEPOSIT, MICRO_UNIT, SLOT_DURATION, UNIT, VERSION,
+	AccountId, Aura, AwarizonConsensus, Balance, Balances, Block, BlockNumber, Hash, Nonce,
+	PalletInfo, RandomnessFromParentHash, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Signature, System,
+	Timestamp, UncheckedExtrinsic, EXISTENTIAL_DEPOSIT, MICRO_UNIT, SLOT_DURATION, UNIT, VERSION,
 };
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
@@ -177,7 +180,7 @@ impl WeightToFee for AwarizonLengthToFee {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = FungibleAdapter<Balances, ()>;
+	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFees>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = AwarizonWeightToFee;
 	type LengthToFee = AwarizonLengthToFee;
@@ -203,6 +206,27 @@ parameter_types! {
 	pub const MinVestedTransfer: Balance = 1_000_000_000_000u128;
 	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
 		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
+
+	pub const ValidatorRewardsPalletId: PalletId = PalletId(*b"riz/vldr");
+	pub const FeePoolPalletId: PalletId = PalletId(*b"riz/fees");
+	pub const InsurancePalletId: PalletId = PalletId(*b"riz/insr");
+}
+
+/// Routes transaction fees into the epoch fee pool instead of burning them, and notifies
+/// awarizon-consensus so it can include them in the next `distribute_epoch_rewards` call.
+pub struct DealWithFees;
+
+impl frame_support::traits::OnUnbalanced<frame_support::traits::fungible::Credit<AccountId, Balances>>
+	for DealWithFees
+{
+	fn on_nonzero_unbalanced(fees: frame_support::traits::fungible::Credit<AccountId, Balances>) {
+		let amount: Balance = fees.peek();
+		let fee_pool: AccountId = FeePoolPalletId::get().into_account_truncating();
+		let _ = <Balances as frame_support::traits::fungible::Balanced<AccountId>>::resolve(
+			&fee_pool, fees,
+		);
+		AwarizonConsensus::deposit_fee(amount);
+	}
 }
 
 impl<C> frame_system::offchain::CreateTransactionBase<C> for Runtime
@@ -228,6 +252,7 @@ impl pallet_awarizon_state::Config for Runtime {
 	type VerificationStakeThreshold = VerificationStakeThreshold;
 	type InboxStateReserveAccount = EngagementPoolAccount;
 	type AuthorityId = pallet_awarizon_state::crypto::AwarizonAuthId;
+	type RewardDistributor = AwarizonConsensus;
 }
 
 parameter_types! {
@@ -363,6 +388,11 @@ impl pallet_awarizon_consensus::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MinValidatorStake = ConstU128<{ 100_000 * 1_000_000_000_000u128 }>;
+	type ValidatorRewardsPalletId = ValidatorRewardsPalletId;
+	type FeePoolPalletId = FeePoolPalletId;
+	type InsurancePalletId = InsurancePalletId;
+	type InboxReserveAccount = EngagementPoolAccount;
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
 }
 
 impl pallet_vesting::Config for Runtime {

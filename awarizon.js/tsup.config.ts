@@ -17,13 +17,13 @@ export default defineConfig([
   },
   // React web entry
   {
-    entry: { 'react/index': 'src/react/index.ts' },
+    entry: { 'react/index': 'src/react.ts' },
     format: ['cjs', 'esm'],
     dts: true,
     splitting: false,
     sourcemap: true,
     treeshake: true,
-    external: ['react', 'react-native', '@awarizon/react', '@awarizon/core', '@awarizon/sdk'],
+    external: ['react', 'react-native', '@awarizon/sdk'],
   },
   // React Native entry
   {
@@ -33,6 +33,6 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     treeshake: true,
-    external: ['react', 'react-native', '@awarizon/core', '@awarizon/sdk'],
+    external: ['react', 'react-native', '@awarizon/sdk'],
   },
 ])

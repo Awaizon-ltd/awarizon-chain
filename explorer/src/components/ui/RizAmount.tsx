@@ -1,4 +1,4 @@
-import { formatRiz } from '@awarizon/sdk'
+import { formatRizAmount } from '../../lib/formatRiz'
 
 interface RizAmountProps {
   planck: bigint
@@ -6,10 +6,10 @@ interface RizAmountProps {
   className?: string
 }
 
-export function RizAmount({ planck, decimals = 4, className = '' }: RizAmountProps) {
+export function RizAmount({ planck, decimals = 2, className = '' }: RizAmountProps) {
   return (
     <span className={`font-mono ${className}`}>
-      {formatRiz(planck, decimals)}
+      {formatRizAmount(planck, decimals)}
       <span className="text-awz-muted ml-1 text-xs">RIZ</span>
     </span>
   )

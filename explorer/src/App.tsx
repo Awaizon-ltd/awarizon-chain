@@ -9,8 +9,10 @@ import { CampaignDetail } from './pages/CampaignDetail'
 import { BlockDetail } from './pages/BlockDetail'
 import { TransactionDetail } from './pages/TransactionDetail'
 import { Account } from './pages/Account'
+import { Tokens } from './pages/Tokens'
+import { TokenDetail } from './pages/TokenDetail'
+import { NFTs } from './pages/NFTs'
 import { ThemeContext, type Theme } from './hooks/useTheme'
-import { IndexerProvider } from './db/IndexerContext'
 
 function getInitialTheme(): Theme {
   try {
@@ -39,7 +41,6 @@ export function App() {
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>
-      <IndexerProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -48,13 +49,16 @@ export function App() {
             <Route path="validators" element={<Validators />} />
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="campaigns/:id" element={<CampaignDetail />} />
+            <Route path="tokens" element={<Tokens />} />
+            <Route path="tokens/:id" element={<TokenDetail />} />
+            <Route path="nfts" element={<NFTs />} />
             <Route path="block/:number" element={<BlockDetail />} />
             <Route path="tx/:blockNumber/:index" element={<TransactionDetail />} />
+            <Route path="tx/:blockNumber" element={<TransactionDetail />} />
             <Route path="account" element={<Account />} />
           </Route>
         </Routes>
       </BrowserRouter>
-      </IndexerProvider>
     </ThemeContext.Provider>
   )
 }

@@ -83,7 +83,7 @@ export default function Home() {
                   Request Testnet RIZ
                 </h2>
                 <p className="text-[#8B8B93] text-xs mt-1">
-                  10 RIZ per request ·
+                  10 RIZ per day ·
                   100 RIZ lifetime limit per address
                 </p>
               </div>

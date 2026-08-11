@@ -304,6 +304,21 @@ impl EpochRewardDistributor for () {
 }
 
 // ============================================================
+// FEE DEPOSITOR HOOK
+// ============================================================
+
+/// Lets a pallet that collects protocol fees in native RIZ (e.g. awarizon-dex's Treasury
+/// fee destination) record them into awarizon-consensus's per-epoch fee pool, without the
+/// two pallets depending on each other directly. Mirrors [`EpochRewardDistributor`].
+pub trait FeeDepositor {
+    fn deposit_fee(amount: u128);
+}
+
+impl FeeDepositor for () {
+    fn deposit_fee(_amount: u128) {}
+}
+
+// ============================================================
 // CHAIN TYPE (for cross-chain address linking)
 // ============================================================
 

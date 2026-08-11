@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import {
   getIdentity, lookupName, isNameAvailable, getTotalIdentities,
   type IdentityRecord,
@@ -19,7 +19,7 @@ export type { IdentityRecord }
 export class IdentityModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -57,7 +57,7 @@ export class IdentityModule {
       profile?.avatarUri ?? null,
       profile?.website ?? null,
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async update(profile: ProfileParams): Promise<TxResult> {
@@ -68,6 +68,6 @@ export class IdentityModule {
       profile.avatarUri ?? null,
       profile.website ?? null,
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 }

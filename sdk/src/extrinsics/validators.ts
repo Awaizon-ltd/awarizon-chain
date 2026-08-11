@@ -14,6 +14,8 @@
 // call_index 11: report_double_sign(validator: AccountId)  — root only
 // call_index 12: claim_slash_compensation(validator: AccountId)
 // call_index 13: init_yield_reserve()  — root only
+// call_index 14: set_reward_destination(destination: AccountId)
+// call_index 15: clear_reward_destination()
 
 import { ApiPromise } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
@@ -125,4 +127,19 @@ export function buildInitYieldReserve(
   api: ApiPromise
 ): SubmittableExtrinsic<'promise', ISubmittableResult> {
   return api.tx.awarizonConsensus.initYieldReserve()
+}
+
+// Validator-as-a-Service: lets an operator running the validator node route
+// claim_validator_reward() payouts to a customer's wallet instead of its own.
+export function buildSetRewardDestination(
+  api: ApiPromise,
+  destination: string  // SS58 address
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.setRewardDestination(destination)
+}
+
+export function buildClearRewardDestination(
+  api: ApiPromise
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonConsensus.clearRewardDestination()
 }

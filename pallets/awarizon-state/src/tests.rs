@@ -1052,6 +1052,187 @@ fn ocw_prune_inbox_record_fails_if_still_delivered() {
     });
 }
 
+// ================================================================
+// OCW CAMPAIGN DELIVERY TESTS
+// ================================================================
+
+const DELIVERY_FEE_PER_WALLET: u128 = 10_000_000_000u128;
+
+fn index_wallet(wallet: AccountId) {
+    let history: BoundedVec<u8, frame_support::traits::ConstU32<8>> = BoundedVec::new();
+    assert_ok!(AwarizonState::update_wallet_index(
+        RuntimeOrigin::signed(wallet),
+        100u32,
+        10u32,
+        history,
+        0u8,
+    ));
+}
+
+// ---- trigger_campaign_delivery -------------------------------------------
+
+#[test]
+fn trigger_campaign_delivery_works() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        index_wallet(USER);
+
+        let balance_before = pallet_balances::Pallet::<Test>::free_balance(DEV);
+        assert_ok!(AwarizonState::trigger_campaign_delivery(
+            RuntimeOrigin::signed(DEV),
+            campaign_id,
+        ));
+        let balance_after = pallet_balances::Pallet::<Test>::free_balance(DEV);
+
+        assert_eq!(balance_before - balance_after, DELIVERY_FEE_PER_WALLET);
+        assert_eq!(PendingOcwDelivery::<Test>::get(campaign_id), Some(0u64));
+        assert_eq!(OcwDeliveryCursor::<Test>::get(campaign_id), 0u32);
+    });
+}
+
+#[test]
+fn trigger_campaign_delivery_fails_if_no_matching_wallets() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        // No wallet has been indexed yet.
+        assert_noop!(
+            AwarizonState::trigger_campaign_delivery(RuntimeOrigin::signed(DEV), campaign_id),
+            Error::<Test>::NoMatchingWallets
+        );
+    });
+}
+
+#[test]
+fn trigger_campaign_delivery_fails_if_already_triggered() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        index_wallet(USER);
+        assert_ok!(AwarizonState::trigger_campaign_delivery(
+            RuntimeOrigin::signed(DEV),
+            campaign_id,
+        ));
+        assert_noop!(
+            AwarizonState::trigger_campaign_delivery(RuntimeOrigin::signed(DEV), campaign_id),
+            Error::<Test>::DeliveryAlreadyTriggered
+        );
+    });
+}
+
+#[test]
+fn trigger_campaign_delivery_fails_if_unauthorized() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        index_wallet(USER);
+        assert_noop!(
+            AwarizonState::trigger_campaign_delivery(RuntimeOrigin::signed(USER), campaign_id),
+            Error::<Test>::Unauthorized
+        );
+    });
+}
+
+// ---- ocw_deliver_batch -----------------------------------------------------
+
+#[test]
+fn ocw_deliver_batch_delivers_and_completes_via_none_origin() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        let record_id = [40u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        index_wallet(USER);
+        assert_ok!(AwarizonState::trigger_campaign_delivery(
+            RuntimeOrigin::signed(DEV),
+            campaign_id,
+        ));
+
+        assert_ok!(AwarizonState::ocw_deliver_batch(
+            RuntimeOrigin::none(),
+            campaign_id,
+            vec![USER],
+            vec![record_id],
+            true,
+        ));
+
+        let record = InboxRecords::<Test>::get(USER, record_id).expect("record must exist");
+        assert_eq!(record.status, InboxRecordStatus::Delivered);
+        assert_eq!(WalletInboxCount::<Test>::get(USER), 1u32);
+        assert_eq!(Campaigns::<Test>::get(campaign_id).unwrap().current_deliveries, 1u64);
+        assert!(OcwDeliveryAttempted::<Test>::get(campaign_id, USER));
+        assert!(PendingOcwDelivery::<Test>::get(campaign_id).is_none());
+        assert_eq!(OcwDeliveryCursor::<Test>::get(campaign_id), 0u32);
+    });
+}
+
+#[test]
+fn ocw_deliver_batch_rejects_signed_origin() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        let record_id = [40u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        assert_noop!(
+            AwarizonState::ocw_deliver_batch(
+                RuntimeOrigin::signed(DEV),
+                campaign_id,
+                vec![USER],
+                vec![record_id],
+                true,
+            ),
+            frame_support::error::BadOrigin
+        );
+    });
+}
+
+#[test]
+fn ocw_deliver_batch_skips_already_attempted_wallet() {
+    new_test_ext().execute_with(|| {
+        let manifest_hash = [10u8; 32];
+        let campaign_id = [20u8; 32];
+        let record_id = [40u8; 32];
+        setup_verified_developer(DEV);
+        setup_manifest(DEV, manifest_hash);
+        setup_campaign(DEV, campaign_id, manifest_hash);
+        assert_ok!(AwarizonState::ocw_deliver_batch(
+            RuntimeOrigin::none(),
+            campaign_id,
+            vec![USER],
+            vec![record_id],
+            false,
+        ));
+        assert_eq!(Campaigns::<Test>::get(campaign_id).unwrap().current_deliveries, 1u64);
+
+        // Re-delivering the same wallet must be a no-op — already attempted.
+        assert_ok!(AwarizonState::ocw_deliver_batch(
+            RuntimeOrigin::none(),
+            campaign_id,
+            vec![USER],
+            vec![[41u8; 32]],
+            false,
+        ));
+        assert_eq!(Campaigns::<Test>::get(campaign_id).unwrap().current_deliveries, 1u64);
+    });
+}
+
 #[test]
 fn ocw_prune_inbox_record_fails_if_not_old_enough() {
     new_test_ext().execute_with(|| {

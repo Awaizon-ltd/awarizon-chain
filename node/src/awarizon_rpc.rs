@@ -5,7 +5,9 @@ use jsonrpsee::{
     types::error::ErrorObject,
 };
 use pallet_awarizon_consensus::ValidatorInfo;
+use pallet_awarizon_dex::types::{Asset, FeeDestination, Pool, PoolId, PriceAccumulator};
 use pallet_awarizon_types::{
+    constants::{FEE_PROTOCOL_BURN_BPS, TWAP_PRECISION},
     AppCategory, Campaign, CampaignStatus, DeveloperProfile, DeveloperStatus, InboxRecord,
     InboxRecordStatus,
 };
@@ -141,6 +143,155 @@ fn locked_at(v: &VestingInfoRaw, now: u32) -> u128 {
     }
     let elapsed = (now - v.starting_block) as u128;
     v.locked.saturating_sub(v.per_block.saturating_mul(elapsed))
+}
+
+/// DEX asset — "native" for RIZ, or `{ "token": 42 }` for a pallet-assets token.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RpcAsset {
+    #[serde(rename = "native")]
+    Native,
+    #[serde(rename = "token")]
+    Token(u32),
+}
+
+fn to_pallet_asset(asset: RpcAsset) -> Asset {
+    match asset {
+        RpcAsset::Native => Asset::Native,
+        RpcAsset::Token(id) => Asset::Token(id),
+    }
+}
+
+fn from_pallet_asset(asset: Asset) -> RpcAsset {
+    match asset {
+        Asset::Native => RpcAsset::Native,
+        Asset::Token(id) => RpcAsset::Token(id),
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct RpcPool {
+    pub asset_a: RpcAsset,
+    pub asset_b: RpcAsset,
+    pub reserve_a: String,
+    pub reserve_b: String,
+    pub lp_total_supply: String,
+    pub lp_asset_id: u32,
+    pub total_volume: String,
+    pub total_fees: String,
+    pub total_burned: String,
+    pub fee_bps: u32,
+    pub is_riz_pair: bool,
+    pub created_at: u32,
+    pub last_updated_block: u32,
+}
+
+fn pool_to_rpc(pool_id: &PoolId, pool: &Pool<AccountId32>) -> RpcPool {
+    RpcPool {
+        asset_a: from_pallet_asset(pool_id.asset_a),
+        asset_b: from_pallet_asset(pool_id.asset_b),
+        reserve_a: pool.reserve_a.to_string(),
+        reserve_b: pool.reserve_b.to_string(),
+        lp_total_supply: pool.lp_total_supply.to_string(),
+        lp_asset_id: pool.lp_asset_id,
+        total_volume: pool.total_volume.to_string(),
+        total_fees: pool.total_fees.to_string(),
+        total_burned: pool.total_burned.to_string(),
+        fee_bps: pool_id.fee_bps(),
+        is_riz_pair: pool_id.is_riz_pair(),
+        created_at: pool.created_at,
+        last_updated_block: pool.last_updated_block,
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct RpcQuote {
+    pub asset_in: RpcAsset,
+    pub asset_out: RpcAsset,
+    pub amount_in: String,
+    pub amount_out: String,
+    pub fee: String,
+    pub protocol_fee: String,
+    pub price_impact_bps: u32,
+    pub path: Vec<RpcAsset>,
+    pub via_riz: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct RpcTwap {
+    pub price_a_cumulative: String,
+    pub price_b_cumulative: String,
+    pub last_block: u32,
+    /// Current spot price A per B (reserve_b / reserve_a * TWAP_PRECISION).
+    pub spot_price_a_per_b: String,
+    /// Current spot price B per A.
+    pub spot_price_b_per_a: String,
+}
+
+// ============================================================
+// DEX quote math — pure, read-only mirror of
+// pallet_awarizon_dex::Pallet::calc_amount_out. Keep in sync if that
+// pallet's fee logic changes; duplicated here (not called directly)
+// because it needs a concrete `T: Config` we don't have at the RPC layer,
+// same reasoning as `locked_at` above for pallet_vesting.
+// ============================================================
+
+fn calc_amount_out(
+    reserve_in: u128,
+    reserve_out: u128,
+    amount_in: u128,
+    fee_bps: u32,
+) -> Option<(u128, u128, u128)> {
+    if reserve_in == 0 || reserve_out == 0 || amount_in == 0 {
+        return None;
+    }
+    let fee = amount_in.saturating_mul(fee_bps as u128) / 10_000u128;
+    let protocol_burn = amount_in.saturating_mul(FEE_PROTOCOL_BURN_BPS as u128) / 10_000u128;
+    let amount_in_net = amount_in.saturating_sub(fee).saturating_sub(protocol_burn);
+    let numerator = amount_in_net.saturating_mul(reserve_out);
+    let denominator = reserve_in.saturating_add(amount_in_net);
+    if denominator == 0 {
+        return None;
+    }
+    let amount_out = numerator / denominator;
+    if amount_out == 0 || amount_out >= reserve_out {
+        return None;
+    }
+    Some((amount_out, fee, protocol_burn))
+}
+
+fn reserves_for(pool: &Pool<AccountId32>, pool_id: &PoolId, asset_in: Asset) -> (u128, u128) {
+    if pool_id.asset_a == asset_in {
+        (pool.reserve_a, pool.reserve_b)
+    } else {
+        (pool.reserve_b, pool.reserve_a)
+    }
+}
+
+fn simulate_direct(
+    pool: &Pool<AccountId32>,
+    pool_id: &PoolId,
+    asset_in: Asset,
+    amount_in: u128,
+) -> Option<(u128, u128, u128)> {
+    let (r_in, r_out) = reserves_for(pool, pool_id, asset_in);
+    calc_amount_out(r_in, r_out, amount_in, pool_id.fee_bps())
+}
+
+fn spot_price(pool: &Pool<AccountId32>) -> (u128, u128) {
+    if pool.reserve_a == 0 || pool.reserve_b == 0 {
+        return (0, 0);
+    }
+    let price_a = pool.reserve_b.saturating_mul(TWAP_PRECISION) / pool.reserve_a;
+    let price_b = pool.reserve_a.saturating_mul(TWAP_PRECISION) / pool.reserve_b;
+    (price_a, price_b)
+}
+
+fn calc_price_impact_bps(reserve_in: u128, amount_in: u128) -> u32 {
+    if reserve_in == 0 {
+        return 10_000;
+    }
+    let impact = amount_in.saturating_mul(10_000u128) / reserve_in.saturating_add(amount_in);
+    impact.min(10_000) as u32
 }
 
 // ============================================================
@@ -326,6 +477,29 @@ pub trait AwarizonRpc {
         at: Option<sp_core::H256>,
     ) -> RpcResult<u32>;
 
+    // DEX endpoints
+    #[method(name = "dex_getPool")]
+    async fn dex_get_pool(&self, asset_a: RpcAsset, asset_b: RpcAsset) -> RpcResult<Option<RpcPool>>;
+
+    #[method(name = "dex_getQuote")]
+    async fn dex_get_quote(
+        &self,
+        asset_in: RpcAsset,
+        asset_out: RpcAsset,
+        amount_in: String,
+    ) -> RpcResult<RpcQuote>;
+
+    #[method(name = "dex_getTwap")]
+    async fn dex_get_twap(&self, asset_a: RpcAsset, asset_b: RpcAsset) -> RpcResult<Option<RpcTwap>>;
+
+    #[method(name = "dex_getAllPools")]
+    async fn dex_get_all_pools(&self, limit: u32) -> RpcResult<Vec<RpcPool>>;
+
+    #[method(name = "dex_getFeeDestination")]
+    async fn dex_get_fee_destination(&self) -> RpcResult<String>;
+
+    #[method(name = "dex_getTotalBurned")]
+    async fn dex_get_total_burned(&self) -> RpcResult<String>;
 }
 
 // ============================================================
@@ -378,6 +552,26 @@ where
         match self.read_raw(value_key(pallet, name))? {
             Some(b) => u128::decode(&mut &b[..]).map_err(|e| runtime_error(&e.to_string())),
             None => Ok(0),
+        }
+    }
+
+    fn read_pool(&self, pool_id: &PoolId) -> RpcResult<Option<Pool<AccountId32>>> {
+        let key = map_key_b2("AwarizonDex", "Pools", &pool_id.encode());
+        match self.read_raw(key)? {
+            None => Ok(None),
+            Some(b) => Pool::<AccountId32>::decode(&mut &b[..])
+                .map(Some)
+                .map_err(|e| runtime_error(&e.to_string())),
+        }
+    }
+
+    // `PriceAccumulators` is a `ValueQuery` map — a missing key means "never updated yet",
+    // which decodes to the all-zero default, not an error or a `None`.
+    fn read_price_accumulator(&self, pool_id: &PoolId) -> RpcResult<PriceAccumulator> {
+        let key = map_key_b2("AwarizonDex", "PriceAccumulators", &pool_id.encode());
+        match self.read_raw(key)? {
+            None => Ok(PriceAccumulator::default()),
+            Some(b) => PriceAccumulator::decode(&mut &b[..]).map_err(|e| runtime_error(&e.to_string())),
         }
     }
 
@@ -936,6 +1130,156 @@ where
         _at: Option<sp_core::H256>,
     ) -> RpcResult<u32> {
         self.read_u32_value("AwarizonIdentity", "TotalIdentities")
+    }
+
+    async fn dex_get_pool(&self, asset_a: RpcAsset, asset_b: RpcAsset) -> RpcResult<Option<RpcPool>> {
+        let pool_id = PoolId::new(to_pallet_asset(asset_a), to_pallet_asset(asset_b));
+        Ok(self.read_pool(&pool_id)?.map(|pool| pool_to_rpc(&pool_id, &pool)))
+    }
+
+    async fn dex_get_quote(
+        &self,
+        asset_in: RpcAsset,
+        asset_out: RpcAsset,
+        amount_in: String,
+    ) -> RpcResult<RpcQuote> {
+        let asset_in = to_pallet_asset(asset_in);
+        let asset_out = to_pallet_asset(asset_out);
+        let amount_in: u128 = amount_in
+            .parse()
+            .map_err(|_| ErrorObject::owned(ERROR_INVALID_PARAM, "Invalid amount_in", None::<()>))?;
+
+        if asset_in == asset_out {
+            return Err(ErrorObject::owned(
+                ERROR_INVALID_PARAM,
+                "asset_in and asset_out must differ",
+                None::<()>,
+            ));
+        }
+        if amount_in == 0 {
+            return Err(ErrorObject::owned(
+                ERROR_INVALID_PARAM,
+                "amount_in must be greater than zero",
+                None::<()>,
+            ));
+        }
+
+        let direct_pool_id = PoolId::new(asset_in, asset_out);
+        let direct_pool = self.read_pool(&direct_pool_id)?;
+        let via_riz_possible = !asset_in.is_native() && !asset_out.is_native();
+
+        // (amount_out, fee, protocol_fee, reserve_in_of_first_hop)
+        let direct_result: Option<(u128, u128, u128, u128)> = direct_pool.as_ref().and_then(|pool| {
+            let (r_in, _) = reserves_for(pool, &direct_pool_id, asset_in);
+            simulate_direct(pool, &direct_pool_id, asset_in, amount_in)
+                .map(|(out, fee, burn)| (out, fee, burn, r_in))
+        });
+
+        let via_result: Option<(u128, u128, u128, u128)> = if via_riz_possible {
+            let pool_id_a = PoolId::new(asset_in, Asset::Native);
+            let pool_id_b = PoolId::new(Asset::Native, asset_out);
+            match (self.read_pool(&pool_id_a)?, self.read_pool(&pool_id_b)?) {
+                (Some(pool_a), Some(pool_b)) => {
+                    let (r_in, _) = reserves_for(&pool_a, &pool_id_a, asset_in);
+                    simulate_direct(&pool_a, &pool_id_a, asset_in, amount_in).and_then(
+                        |(mid, fee1, burn1)| {
+                            simulate_direct(&pool_b, &pool_id_b, Asset::Native, mid).map(
+                                |(out, fee2, burn2)| {
+                                    (out, fee1.saturating_add(fee2), burn1.saturating_add(burn2), r_in)
+                                },
+                            )
+                        },
+                    )
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        let (amount_out, fee, protocol_fee, reserve_in, path, via_riz) =
+            match (direct_result, via_result) {
+                (Some(d), Some(v)) if v.0 > d.0 => {
+                    (v.0, v.1, v.2, v.3, vec![asset_in, Asset::Native, asset_out], true)
+                }
+                (Some(d), _) => (d.0, d.1, d.2, d.3, vec![asset_in, asset_out], false),
+                (None, Some(v)) => (v.0, v.1, v.2, v.3, vec![asset_in, Asset::Native, asset_out], true),
+                (None, None) => {
+                    return Err(runtime_error("No route found between these assets"));
+                }
+            };
+
+        Ok(RpcQuote {
+            asset_in: from_pallet_asset(asset_in),
+            asset_out: from_pallet_asset(asset_out),
+            amount_in: amount_in.to_string(),
+            amount_out: amount_out.to_string(),
+            fee: fee.to_string(),
+            protocol_fee: protocol_fee.to_string(),
+            price_impact_bps: calc_price_impact_bps(reserve_in, amount_in),
+            path: path.into_iter().map(from_pallet_asset).collect(),
+            via_riz,
+        })
+    }
+
+    async fn dex_get_twap(&self, asset_a: RpcAsset, asset_b: RpcAsset) -> RpcResult<Option<RpcTwap>> {
+        let pool_id = PoolId::new(to_pallet_asset(asset_a), to_pallet_asset(asset_b));
+        let pool = match self.read_pool(&pool_id)? {
+            None => return Ok(None),
+            Some(p) => p,
+        };
+        let acc = self.read_price_accumulator(&pool_id)?;
+        let (spot_a, spot_b) = spot_price(&pool);
+
+        Ok(Some(RpcTwap {
+            price_a_cumulative: acc.price_a_cumulative.to_string(),
+            price_b_cumulative: acc.price_b_cumulative.to_string(),
+            last_block: acc.last_block,
+            spot_price_a_per_b: spot_a.to_string(),
+            spot_price_b_per_a: spot_b.to_string(),
+        }))
+    }
+
+    async fn dex_get_all_pools(&self, limit: u32) -> RpcResult<Vec<RpcPool>> {
+        if limit == 0 {
+            return Ok(vec![]);
+        }
+        let hash = self.client.info().best_hash;
+        let prefix = value_key("AwarizonDex", "Pools");
+        let pairs = self
+            .client
+            .storage_pairs(hash, Some(&prefix), None)
+            .map_err(|e| runtime_error(&e.to_string()))?;
+
+        let mut out = Vec::new();
+        // Blake2_128Concat keys are `prefix(32) ++ blake2_128(encoded_key)(16) ++ encoded_key` —
+        // the encoded PoolId is recoverable straight from the key, no separate index needed.
+        for (key, data) in pairs.take(limit as usize) {
+            if key.0.len() <= 48 {
+                continue;
+            }
+            let Ok(pool_id) = PoolId::decode(&mut &key.0[48..]) else { continue };
+            let Ok(pool) = Pool::<AccountId32>::decode(&mut &data.0[..]) else { continue };
+            out.push(pool_to_rpc(&pool_id, &pool));
+        }
+        Ok(out)
+    }
+
+    async fn dex_get_fee_destination(&self) -> RpcResult<String> {
+        let dest = match self.read_raw(value_key("AwarizonDex", "ProtocolFeeDestination"))? {
+            None => FeeDestination::default(),
+            Some(b) => {
+                FeeDestination::decode(&mut &b[..]).map_err(|e| runtime_error(&e.to_string()))?
+            }
+        };
+        Ok(match dest {
+            FeeDestination::Burn => "burn".to_string(),
+            FeeDestination::Treasury => "treasury".to_string(),
+        })
+    }
+
+    async fn dex_get_total_burned(&self) -> RpcResult<String> {
+        Ok(self.read_u128_value("AwarizonDex", "TotalProtocolBurned")?.to_string())
     }
 }
 

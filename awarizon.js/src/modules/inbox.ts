@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import {
   getInboxCount, getInboxRecord,
   buildSubmitEngagement, buildClaimReward, buildDismissInboxRecord,
@@ -35,7 +35,7 @@ function rewardForCategory(category: string): bigint {
 export class InboxModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -43,16 +43,22 @@ export class InboxModule {
     const addr = await this._resolveOrOwn(address)
     const entries = await (this.api.query as any).awarizonState.inboxRecords.entries(addr)
     return entries.map(([, value]: [unknown, any]) => {
+      // Raw storage query — @polkadot/api decodes the SCALE struct itself
+      // and auto-camelCases Rust's snake_case field names on .toJSON()
+      // (unlike the custom RPC methods, which build snake_case JSON by
+      // hand via serde_json::json! on the Rust side). Reading snake_case
+      // here silently produced `undefined` for id/campaignId/deliveredAt —
+      // same footgun AppsModule.list() already had to work around.
       const json = value.toJSON()
       const reward = rewardForCategory(json.category)
       return {
-        id: json.record_id,
-        campaignId: json.campaign_id,
+        id: json.recordId,
+        campaignId: json.campaignId,
         developer: json.developer,
         category: json.category,
         status: json.status,
-        deliveredAt: Number(json.delivered_at ?? 0),
-        rewardEligible: json.status === 'Engaged' && !json.reward_claimed,
+        deliveredAt: Number(json.deliveredAt ?? 0),
+        rewardEligible: json.status === 'Engaged' && !json.rewardClaimed,
         reward: formatAmount(reward),
       } as InboxItem
     })
@@ -71,7 +77,7 @@ export class InboxModule {
     const extrinsic = buildSubmitEngagement(
       this.api, recordId, MIN_SESSION_SECONDS, MIN_INTERACTIONS
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async claim(recordId: string): Promise<ClaimResult> {
@@ -82,14 +88,14 @@ export class InboxModule {
     }
     const reward = rewardForCategory((record as any).category)
     const extrinsic = buildClaimReward(this.api, recordId)
-    const result = await submitAndWait(extrinsic, this.pair)
+    const result = await submitAndWait(extrinsic, this.pair, this.api)
     return { ...result, reward: formatAmount(reward) }
   }
 
   async dismiss(recordId: string): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const extrinsic = buildDismissInboxRecord(this.api, recordId)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   private async _resolveOrOwn(address?: string): Promise<string> {

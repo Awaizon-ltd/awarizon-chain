@@ -28,8 +28,18 @@ html.dark {
   --awz-yellow-rgb: 255 204 0;
 }
 
+/* Root font-size drives every rem-based Tailwind text-* utility across the
+   whole app. 14px on mobile; 16px only once there's room for it at sm: and
+   up — previously this was a flat 19px on every screen size, inflating all
+   text on mobile too. */
 html {
-  font-size: 19px;
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 16px;
+  }
 }
 
 * {

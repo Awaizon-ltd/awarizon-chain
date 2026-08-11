@@ -186,3 +186,28 @@ pub const FEE_POOL_PALLET_ID: frame_support::PalletId =
     frame_support::PalletId(*b"riz/fees"); // epoch fee collection
 pub const INSURANCE_POOL_PALLET_ID: frame_support::PalletId =
     frame_support::PalletId(*b"riz/insr"); // slash insurance
+
+// ============================================================
+// DEX — AMM pool fees, limits, and precision
+// ============================================================
+
+/// Fee for RIZ-paired pools (basis points). 0.25%.
+pub const FEE_RIZ_PAIR_BPS: u32 = 25;
+/// Fee for TOKEN/TOKEN pools (basis points). 0.30%.
+pub const FEE_TOKEN_PAIR_BPS: u32 = 30;
+/// Protocol burn fee (basis points), carved out of the swap fee above. 0.05%.
+pub const FEE_PROTOCOL_BURN_BPS: u32 = 5;
+/// Minimum liquidity permanently locked on a pool's first deposit (anti-manipulation floor).
+pub const MINIMUM_LIQUIDITY: u128 = 1_000u128;
+/// Maximum hops allowed in a router swap path.
+pub const MAX_ROUTER_HOPS: u32 = 3;
+/// LP token asset IDs are allocated starting from this offset.
+pub const LP_ASSET_ID_OFFSET: u32 = 1_000_000u32;
+/// Minimum combined liquidity required to create a new pool (~1 RIZ equivalent).
+pub const MIN_POOL_LIQUIDITY: u128 = 1_000_000_000_000u128;
+/// Maximum swap deadline window, in blocks (~10 minutes at 3s/block).
+pub const MAX_DEADLINE_BLOCKS: u32 = 200;
+/// TWAP price accumulator precision multiplier.
+pub const TWAP_PRECISION: u128 = 1_000_000_000_000u128;
+
+pub const DEX_PALLET_ID: frame_support::PalletId = frame_support::PalletId(*b"riz/dexx"); // pool accounts

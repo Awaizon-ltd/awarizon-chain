@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
+import { resolveSearch } from '../../hooks/useSearch'
 import { AddChainButton } from '../AddChainButton'
 
 const NAV = [
   { label: 'Overview', path: '/' },
+  { label: 'Tokens', path: '/tokens' },
+  { label: 'NFTs', path: '/nfts' },
   { label: 'Blocks', path: '/blocks' },
   { label: 'Validators', path: '/validators' },
   { label: 'Campaigns', path: '/campaigns' },
@@ -59,14 +62,6 @@ function XIcon() {
   )
 }
 
-/* ── Search routing ─────────────────────────────────────────────── */
-function resolveSearchRoute(q: string): string {
-  if (/^\d+$/.test(q)) return `/blocks?block=${q}`
-  // 0x + 64 hex chars = block hash or tx hash — Blocks.tsx resolves which it is
-  if (/^0x[0-9a-fA-F]{64}$/.test(q)) return `/blocks?hash=${encodeURIComponent(q)}`
-  return `/account?address=${encodeURIComponent(q)}`
-}
-
 /* ── Header ─────────────────────────────────────────────────────── */
 export function Header() {
   const location = useLocation()
@@ -74,15 +69,40 @@ export function Header() {
   const { theme, toggle } = useTheme()
   const [query, setQuery] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
-  function handleSearch(e: React.FormEvent) {
+  async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const q = query.trim()
-    if (!q) return
-    navigate(resolveSearchRoute(q))
+    if (!q || searching) return
+
+    setSearching(true)
+    setSearchError(null)
+    const result = await resolveSearch(q).catch(() => null)
+    setSearching(false)
+
+    if (!result) {
+      setSearchError(`No match found for "${q}"`)
+      return
+    }
+
+    switch (result.type) {
+      case 'block':
+        navigate(`/block/${result.value}`)
+        break
+      case 'hash':
+        // Blocks.tsx resolves whether this is a block hash, a recent tx hash, or a campaign ID
+        navigate(`/blocks?hash=${encodeURIComponent(result.value)}`)
+        break
+      case 'address':
+      case 'name':
+        navigate(`/account?address=${encodeURIComponent(result.value)}`)
+        break
+    }
     setQuery('')
     inputRef.current?.blur()
   }
@@ -195,8 +215,8 @@ export function Header() {
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by address, block number, block hash, or tx hash…"
+                onChange={(e) => { setQuery(e.target.value); setSearchError(null) }}
+                placeholder="Search by address, .riz name, block number, block hash, or tx hash…"
                 className={[
                   'w-full rounded-xl pl-12 pr-14 py-3 sm:py-3.5',
                   'bg-white/10 dark:bg-black/40 backdrop-blur-md',
@@ -209,11 +229,15 @@ export function Header() {
               />
               <button
                 type="submit"
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-awz-gold hover:bg-awz-gold-dim text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-150 font-mono"
+                disabled={searching}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-awz-gold hover:bg-awz-gold-dim disabled:opacity-60 text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors duration-150 font-mono"
               >
-                GO
+                {searching ? '…' : 'GO'}
               </button>
             </div>
+            {searchError && (
+              <p className="mt-2 text-center text-xs font-mono text-red-400/90">{searchError}</p>
+            )}
           </form>
         </div>
       </div>

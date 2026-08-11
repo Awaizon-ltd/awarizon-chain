@@ -13,6 +13,7 @@ export const MILLI_RIZ = 1_000_000_000n  // 10^9 planck
 // ----------------------------------------------------------------
 export const DEFAULT_ENDPOINT = 'wss://rpc.awarizon.com'
 export const DEFAULT_HTTP_ENDPOINT = 'https://rpc.awarizon.com'
+export const DEFAULT_INDEXER_ENDPOINT = 'https://index.awarizon.com'
 export const CHAIN_NAME = 'Awarizon'
 
 // ----------------------------------------------------------------

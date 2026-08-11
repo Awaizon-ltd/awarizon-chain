@@ -31,6 +31,10 @@ export type {
   LinkedAddress,
   IdentityRecord,
   NameLookup,
+  DexAssetWire,
+  DexPoolResponse,
+  DexQuoteResponse,
+  DexTwapResponse,
 } from './types'
 
 // Constants
@@ -40,6 +44,7 @@ export {
   MICRO_RIZ,
   MILLI_RIZ,
   DEFAULT_ENDPOINT,
+  DEFAULT_INDEXER_ENDPOINT,
   CHAIN_NAME,
   BLOCK_TIME_SECONDS,
   EPOCH_LENGTH_BLOCKS,
@@ -102,6 +107,12 @@ export {
   getLinkedAddresses,
   isNameAvailable,
   getTotalIdentities,
+  getDexPool,
+  getDexQuote,
+  getDexTwap,
+  getAllDexPools,
+  getDexFeeDestination,
+  getDexTotalBurned,
 } from './rpc'
 
 // Extrinsics

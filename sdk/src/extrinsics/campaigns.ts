@@ -4,6 +4,7 @@
 // call_index 10: advance_epoch()
 // call_index 11: expire_campaign(campaign_id)
 // call_index 12: reset_daily_engagement()
+// call_index 16: trigger_campaign_delivery(campaign_id)
 
 import { ApiPromise } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
@@ -51,4 +52,13 @@ export function buildResetDailyEngagement(
   api: ApiPromise
 ): SubmittableExtrinsic<'promise', ISubmittableResult> {
   return api.tx.awarizonState.resetDailyEngagement()
+}
+
+// Trigger OCW-based delivery: the developer signs once and the chain
+// delivers to every wallet matching the campaign's targeting criteria.
+export function buildTriggerCampaignDelivery(
+  api: ApiPromise,
+  campaignId: string  // [u8; 32] 0x hex
+): SubmittableExtrinsic<'promise', ISubmittableResult> {
+  return api.tx.awarizonState.triggerCampaignDelivery(campaignId)
 }

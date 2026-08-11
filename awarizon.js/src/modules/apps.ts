@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import { hexToString } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 import { getDeveloperManifests, buildRegisterManifest, type AppCategory } from '@awarizon/sdk'
@@ -17,10 +17,23 @@ export interface AppManifest {
 export class AppsModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
+  async get(manifestHash: string): Promise<AppManifest | null> {
+    const raw = await (this.api.query as any).awarizonState.appManifests(manifestHash)
+    const json = raw.toJSON() as any
+    if (!json) return null
+    return {
+      manifestHash: json.manifestHash,
+      developer: json.developer,
+      category: json.category,
+      registeredAt: Number(json.registeredAt ?? 0),
+      metadataUri: hexToString(json.metadataUri),
+    }
+  }
+
   async list(developerAddress?: string): Promise<AppManifest[]> {
     const addr = developerAddress
       ? await resolveAddress(developerAddress, this.api)
@@ -33,11 +46,18 @@ export class AppsModule {
       .map((m) => m.toJSON() as any)
       .filter((json): json is NonNullable<typeof json> => Boolean(json))
       .map((json) => ({
-        manifestHash: json.manifest_hash,
+        // Unlike the custom RPC methods (which build snake_case JSON
+        // by hand via serde_json::json! on the Rust side), this is a
+        // raw storage query — @polkadot/api decodes the SCALE struct
+        // itself and auto-camelCases Rust's snake_case field names on
+        // .toJSON(). Reading snake_case here silently produced
+        // `undefined` for every field, which made hexToString throw
+        // and the whole list() call reject.
+        manifestHash: json.manifestHash,
         developer: json.developer,
         category: json.category,
-        registeredAt: Number(json.registered_at ?? 0),
-        metadataUri: hexToString(json.metadata_uri),
+        registeredAt: Number(json.registeredAt ?? 0),
+        metadataUri: hexToString(json.metadataUri),
       }))
   }
 
@@ -53,7 +73,7 @@ export class AppsModule {
     const extrinsic = buildRegisterManifest(
       this.api, manifestHash, params.category as AppCategory, params.metadataUri
     )
-    const result = await submitAndWait(extrinsic, this.pair)
+    const result = await submitAndWait(extrinsic, this.pair, this.api)
     return { ...result, manifestHash }
   }
 

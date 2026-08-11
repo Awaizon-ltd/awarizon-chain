@@ -137,18 +137,18 @@ export const awarizonRpc = {
     getDeveloperCampaigns: {
       description: 'Get all campaign IDs for a developer',
       params: [{ name: 'account', type: 'Text' }],
-      type: 'Vec<Text>',
+      type: 'Json',
     },
     getDeveloperManifests: {
       description: 'Get all manifest hashes for a developer',
       params: [{ name: 'account', type: 'Text' }],
-      type: 'Vec<Text>',
+      type: 'Json',
     },
 
     // Campaign endpoints
     getCampaign: {
       description: 'Get campaign details by campaign ID (0x hex)',
-      params: [{ name: 'campaign_id', type: 'Text' }],
+      params: [{ name: 'campaign_id', type: 'H256' }],
       type: 'Json',
     },
     getActiveCampaignCount: {
@@ -158,7 +158,7 @@ export const awarizonRpc = {
     },
     getCampaignDeliveryStatus: {
       description: 'Get delivery progress for a campaign',
-      params: [{ name: 'campaign_id', type: 'Text' }],
+      params: [{ name: 'campaign_id', type: 'H256' }],
       type: 'Json',
     },
 
@@ -270,6 +270,56 @@ export const awarizonRpc = {
         { name: 'at', type: 'Option<Hash>' },
       ],
       type: 'Json',
+    },
+  },
+
+  // DEX endpoints — separate "dex" namespace, unlike the rest of the
+  // RPC surface which lives under "awarizon". Matches the wire names
+  // in node/src/awarizon_rpc.rs (dex_getPool, dex_getQuote, ...).
+  // Asset params/returns are serde JSON (a bare string "native" or a
+  // { token: n } object), not SCALE — declared as 'Json' so
+  // @polkadot/api passes them through unchanged instead of trying to
+  // SCALE-encode/decode them.
+  dex: {
+    getPool: {
+      description: 'Get pool info for an asset pair',
+      params: [
+        { name: 'asset_a', type: 'Json' },
+        { name: 'asset_b', type: 'Json' },
+      ],
+      type: 'Json',
+    },
+    getQuote: {
+      description: 'Get a price quote for a swap',
+      params: [
+        { name: 'asset_in', type: 'Json' },
+        { name: 'asset_out', type: 'Json' },
+        { name: 'amount_in', type: 'Text' },
+      ],
+      type: 'Json',
+    },
+    getTwap: {
+      description: 'Get TWAP price accumulator data for a pool',
+      params: [
+        { name: 'asset_a', type: 'Json' },
+        { name: 'asset_b', type: 'Json' },
+      ],
+      type: 'Json',
+    },
+    getAllPools: {
+      description: 'Get all DEX pools, up to limit',
+      params: [{ name: 'limit', type: 'u32' }],
+      type: 'Json',
+    },
+    getFeeDestination: {
+      description: 'Get protocol fee destination ("burn" or "treasury")',
+      params: [],
+      type: 'Text',
+    },
+    getTotalBurned: {
+      description: 'Get total protocol fees burned, as planck decimal string',
+      params: [],
+      type: 'Text',
     },
   },
 }

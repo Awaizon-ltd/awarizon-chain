@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import { AwarizonError } from '../errors'
 import { resolveAddress, submitAndWait, type TxResult } from '../utils'
 
@@ -19,7 +19,7 @@ const DEFAULT_COLLECTION_CONFIG = {
 export class NFTsModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -35,7 +35,7 @@ export class NFTsModule {
     const extrinsic = (this.api.tx as any).nfts.create(
       collectionId, this.pair.address, DEFAULT_COLLECTION_CONFIG
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async mint(params: {
@@ -48,19 +48,19 @@ export class NFTsModule {
     const extrinsic = (this.api.tx as any).nfts.mint(
       params.collection, params.item, owner, null
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async transfer(collection: number, item: number, to: string): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const dest = await resolveAddress(to, this.api)
     const extrinsic = (this.api.tx as any).nfts.transfer(collection, item, dest)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async burn(collection: number, item: number): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const extrinsic = (this.api.tx as any).nfts.burn(collection, item)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 }

@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import { AwarizonError } from '../errors'
 import {
   parseAmount, formatAmount, resolveAddress, submitAndWait,
@@ -16,7 +16,7 @@ export interface Balance {
 export class WalletModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -47,7 +47,7 @@ export class WalletModule {
     const dest = await resolveAddress(to, this.api)
     const planck = parseAmount(amount)
     const extrinsic = this.api.tx.balances.transferKeepAlive(dest, planck)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   private _ownAddress(): string {

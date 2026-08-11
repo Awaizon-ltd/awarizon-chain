@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 use sp_core::crypto::KeyTypeId;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"awrz");
@@ -23,9 +25,12 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use alloc::vec::Vec;
     use frame_support::{
         pallet_prelude::*,
-        traits::{ConstU32, Currency, ExistenceRequirement, Get, ReservableCurrency},
+        traits::{
+            ConstU32, Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons,
+        },
         BoundedVec,
     };
     use frame_system::{offchain::SubmitTransaction, pallet_prelude::*};
@@ -305,6 +310,60 @@ pub mod pallet {
     >;
 
     // ================================================================
+    // OCW CAMPAIGN DELIVERY
+    // ================================================================
+
+    /// Campaigns that have been triggered for OCW delivery. Maps campaign_id to the
+    /// block when delivery was triggered. Cleared when delivery is complete.
+    #[pallet::storage]
+    pub type PendingOcwDelivery<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        [u8; 32],
+        BlockNumberFor<T>,
+        OptionQuery,
+    >;
+
+    /// Tracks which wallets have already been delivered to (or skipped) for a campaign.
+    /// Prevents duplicate deliveries from the OCW.
+    #[pallet::storage]
+    pub type OcwDeliveryAttempted<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        [u8; 32],
+        Blake2_128Concat,
+        T::AccountId,
+        bool,
+        ValueQuery,
+    >;
+
+    /// OCW delivery cursor — tracks how many matched wallets have already been
+    /// scanned for a campaign, enabling pagination across multiple blocks.
+    #[pallet::storage]
+    pub type OcwDeliveryCursor<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        [u8; 32],
+        u32,
+        ValueQuery,
+    >;
+
+    #[pallet::type_value]
+    pub fn DefaultDeliveryFeePerWallet() -> u128 {
+        10_000_000_000u128
+    }
+
+    /// Fee per wallet delivery in planck, deducted from the developer when
+    /// OCW delivery is triggered. Default 0.00001 RIZ per wallet.
+    #[pallet::storage]
+    pub type DeliveryFeePerWallet<T: Config> = StorageValue<
+        _,
+        u128,
+        ValueQuery,
+        DefaultDeliveryFeePerWallet,
+    >;
+
+    // ================================================================
     // EVENTS
     // ================================================================
 
@@ -326,6 +385,23 @@ pub mod pallet {
         StorageFeeBurned { amount: u128 },
         WalletIndexUpdated { wallet: T::AccountId },
         DailyEngagementReset { wallet: T::AccountId },
+        /// Developer triggered OCW delivery for a campaign.
+        TriggerDeliveryInitiated {
+            developer: T::AccountId,
+            campaign_id: [u8; 32],
+            fee_paid: u128,
+        },
+        /// OCW successfully delivered to a batch of wallets.
+        OcwBatchDelivered {
+            campaign_id: [u8; 32],
+            count: u32,
+            block_number: BlockNumberFor<T>,
+        },
+        /// OCW completed delivery for a campaign.
+        OcwDeliveryComplete {
+            campaign_id: [u8; 32],
+            total_delivered: u64,
+        },
     }
 
     // ================================================================
@@ -360,6 +436,8 @@ pub mod pallet {
         EpochNotReady,
         NotExpiredYet,
         ResetNotReady,
+        DeliveryAlreadyTriggered,
+        NoMatchingWallets,
     }
 
     // ================================================================
@@ -405,6 +483,7 @@ pub mod pallet {
             if block_u64 % 50 == 0 {
                 Self::prune_old_inbox_records(block_number);
             }
+            Self::check_and_deliver_campaigns(block_number);
         }
     }
 
@@ -440,6 +519,18 @@ pub mod pallet {
                         .priority(90)
                         .and_provides((wallet, record_id))
                         .longevity(5)
+                        .propagate(false)
+                        .build()
+                },
+                Call::ocw_deliver_batch { campaign_id, wallets, .. } => {
+                    if !PendingOcwDelivery::<T>::contains_key(campaign_id) {
+                        return InvalidTransaction::Call.into();
+                    }
+                    let first_wallet = wallets.first().map(|w| w.encode()).unwrap_or_default();
+                    ValidTransaction::with_tag_prefix("AwarizonDeliver")
+                        .priority(95)
+                        .and_provides((campaign_id, first_wallet))
+                        .longevity(10)
                         .propagate(false)
                         .build()
                 },
@@ -957,6 +1048,158 @@ pub mod pallet {
             WalletInboxCount::<T>::mutate(&wallet, |c| *c = c.saturating_sub(1));
             Ok(())
         }
+
+        // ================================================================
+        // OCW CAMPAIGN DELIVERY (call indices 16-17)
+        // ================================================================
+
+        /// Trigger OCW-based campaign delivery. The developer calls this ONCE — the
+        /// OCW automatically delivers to all matching wallets across multiple blocks.
+        ///
+        /// Calculates and deducts the delivery fee from the developer immediately.
+        /// Fee = DeliveryFeePerWallet × matched_count. The OCW picks this up within
+        /// a few blocks and begins delivering to matched wallets.
+        #[pallet::call_index(16)]
+        #[pallet::weight(Weight::from_parts(500_000_000, 0))]
+        pub fn trigger_campaign_delivery(
+            origin: OriginFor<T>,
+            campaign_id: [u8; 32],
+        ) -> DispatchResult {
+            let developer = ensure_signed(origin)?;
+
+            let campaign = Campaigns::<T>::get(&campaign_id)
+                .ok_or(Error::<T>::CampaignNotFound)?;
+            ensure!(campaign.developer == developer, Error::<T>::Unauthorized);
+            ensure!(
+                campaign.status == CampaignStatus::Active,
+                Error::<T>::CampaignNotActive
+            );
+            ensure!(
+                !PendingOcwDelivery::<T>::contains_key(&campaign_id),
+                Error::<T>::DeliveryAlreadyTriggered
+            );
+
+            let matched_count = Self::count_matching_wallets(&campaign.targeting);
+            ensure!(matched_count > 0, Error::<T>::NoMatchingWallets);
+
+            let fee_per_wallet = DeliveryFeePerWallet::<T>::get();
+            let total_fee = fee_per_wallet.saturating_mul(matched_count as u128);
+            if total_fee > 0 {
+                let _ = T::Currency::withdraw(
+                    &developer,
+                    total_fee.saturated_into::<BalanceOf<T>>(),
+                    WithdrawReasons::FEE,
+                    ExistenceRequirement::KeepAlive,
+                )
+                .map_err(|_| Error::<T>::InsufficientBalance)?;
+            }
+
+            let current_block = <frame_system::Pallet<T>>::block_number();
+            PendingOcwDelivery::<T>::insert(&campaign_id, current_block);
+            OcwDeliveryCursor::<T>::insert(&campaign_id, 0u32);
+
+            Self::deposit_event(Event::TriggerDeliveryInitiated {
+                developer,
+                campaign_id,
+                fee_paid: total_fee,
+            });
+            Ok(())
+        }
+
+        /// OCW unsigned transaction — deliver a batch of wallets for a pending
+        /// campaign. Only callable by the OCW (see ValidateUnsigned).
+        #[pallet::call_index(17)]
+        #[pallet::weight(
+            Weight::from_parts(100_000_000u64.saturating_mul(wallets.len() as u64 + 1), 0)
+        )]
+        pub fn ocw_deliver_batch(
+            origin: OriginFor<T>,
+            campaign_id: [u8; 32],
+            wallets: Vec<T::AccountId>,
+            record_ids: Vec<[u8; 32]>,
+            is_final_batch: bool,
+        ) -> DispatchResult {
+            ensure_none(origin)?;
+
+            let mut campaign = Campaigns::<T>::get(&campaign_id)
+                .ok_or(Error::<T>::CampaignNotFound)?;
+            ensure!(
+                campaign.status == CampaignStatus::Active,
+                Error::<T>::CampaignNotActive
+            );
+
+            let current_block = <frame_system::Pallet<T>>::block_number();
+            let manifest = AppManifests::<T>::get(&campaign.manifest_hash);
+            let mut delivered_count = 0u32;
+
+            if let Some(manifest) = manifest {
+                for (wallet, record_id) in wallets.iter().zip(record_ids.iter()) {
+                    if campaign.current_deliveries >= campaign.max_deliveries {
+                        break;
+                    }
+                    if OcwDeliveryAttempted::<T>::get(&campaign_id, wallet) {
+                        continue;
+                    }
+                    let inbox_count = WalletInboxCount::<T>::get(wallet);
+                    if inbox_count >= 1000u32 {
+                        OcwDeliveryAttempted::<T>::insert(&campaign_id, wallet, true);
+                        continue;
+                    }
+                    if InboxRecords::<T>::contains_key(wallet, record_id) {
+                        OcwDeliveryAttempted::<T>::insert(&campaign_id, wallet, true);
+                        continue;
+                    }
+
+                    let record = InboxRecord {
+                        record_id: *record_id,
+                        campaign_id,
+                        developer: campaign.developer.clone(),
+                        manifest_hash: campaign.manifest_hash,
+                        category: manifest.category.clone(),
+                        status: InboxRecordStatus::Delivered,
+                        delivered_at: current_block,
+                        engaged_at: None,
+                        reward_claimed: false,
+                    };
+                    InboxRecords::<T>::insert(wallet, record_id, record);
+                    WalletInboxCount::<T>::mutate(wallet, |c| *c = c.saturating_add(1));
+                    OcwDeliveryAttempted::<T>::insert(&campaign_id, wallet, true);
+
+                    campaign.current_deliveries = campaign.current_deliveries.saturating_add(1);
+                    delivered_count = delivered_count.saturating_add(1);
+                    TotalDeliveries::<T>::mutate(|d| *d = d.saturating_add(1));
+
+                    Self::deposit_event(Event::AppDelivered {
+                        wallet: wallet.clone(),
+                        record_id: *record_id,
+                        campaign_id,
+                    });
+                }
+            }
+
+            Campaigns::<T>::insert(campaign_id, &campaign);
+
+            if delivered_count > 0 {
+                Self::deposit_event(Event::OcwBatchDelivered {
+                    campaign_id,
+                    count: delivered_count,
+                    block_number: current_block,
+                });
+            }
+
+            if is_final_batch {
+                PendingOcwDelivery::<T>::remove(&campaign_id);
+                OcwDeliveryCursor::<T>::remove(&campaign_id);
+                // OcwDeliveryAttempted is kept for dedup across future triggers.
+
+                Self::deposit_event(Event::OcwDeliveryComplete {
+                    campaign_id,
+                    total_delivered: campaign.current_deliveries,
+                });
+            }
+
+            Ok(())
+        }
     }
 
     // ================================================================
@@ -1014,6 +1257,159 @@ pub mod pallet {
                     }
                 }
             }
+        }
+
+        fn check_and_deliver_campaigns(block_number: BlockNumberFor<T>) {
+            const MAX_CAMPAIGNS_PER_CYCLE: usize = 3;
+            const WALLETS_PER_BATCH: u32 = 50;
+
+            let pending: Vec<[u8; 32]> = PendingOcwDelivery::<T>::iter()
+                .map(|(id, _)| id)
+                .take(MAX_CAMPAIGNS_PER_CYCLE)
+                .collect();
+
+            for campaign_id in pending {
+                let campaign = match Campaigns::<T>::get(&campaign_id) {
+                    Some(c) => c,
+                    None => {
+                        PendingOcwDelivery::<T>::remove(&campaign_id);
+                        OcwDeliveryCursor::<T>::remove(&campaign_id);
+                        continue;
+                    }
+                };
+                if campaign.status != CampaignStatus::Active {
+                    PendingOcwDelivery::<T>::remove(&campaign_id);
+                    OcwDeliveryCursor::<T>::remove(&campaign_id);
+                    continue;
+                }
+
+                let cursor = OcwDeliveryCursor::<T>::get(&campaign_id);
+                let (wallets, is_final) = Self::get_matching_wallets_page(
+                    &campaign.targeting,
+                    &campaign_id,
+                    cursor,
+                    WALLETS_PER_BATCH,
+                );
+
+                if wallets.is_empty() {
+                    PendingOcwDelivery::<T>::remove(&campaign_id);
+                    OcwDeliveryCursor::<T>::remove(&campaign_id);
+                    continue;
+                }
+
+                let record_ids: Vec<[u8; 32]> = wallets
+                    .iter()
+                    .map(|wallet| {
+                        let mut data = campaign_id.to_vec();
+                        data.extend_from_slice(&wallet.encode());
+                        data.extend_from_slice(&block_number.encode());
+                        sp_core::hashing::blake2_256(&data)
+                    })
+                    .collect();
+
+                let new_cursor = cursor.saturating_add(wallets.len() as u32);
+                let call = Call::ocw_deliver_batch {
+                    campaign_id,
+                    wallets,
+                    record_ids,
+                    is_final_batch: is_final,
+                };
+                let xt = T::create_inherent(call.into());
+                if SubmitTransaction::<T, Call<T>>::submit_transaction(xt).is_ok() {
+                    if !is_final {
+                        OcwDeliveryCursor::<T>::insert(&campaign_id, new_cursor);
+                    }
+                }
+            }
+        }
+
+        /// Count wallets matching campaign targeting, used to calculate the
+        /// delivery fee upfront.
+        fn count_matching_wallets(targeting: &TargetingCriteria) -> u32 {
+            let mut count = 0u32;
+            for (wallet, _) in WalletIndexed::<T>::iter() {
+                if Self::wallet_matches_targeting(&wallet, targeting) {
+                    count = count.saturating_add(1);
+                }
+            }
+            count
+        }
+
+        /// Check whether a single wallet matches campaign targeting criteria.
+        fn wallet_matches_targeting(wallet: &T::AccountId, targeting: &TargetingCriteria) -> bool {
+            if let Some(min_age) = targeting.wallet_age_min {
+                let age = WalletAgeIndex::<T>::get(wallet).unwrap_or(0);
+                if age < min_age {
+                    return false;
+                }
+            }
+
+            if let Some(min_activity) = targeting.activity_min {
+                let activity = WalletActivityIndex::<T>::get(wallet).unwrap_or(0);
+                if activity < min_activity {
+                    return false;
+                }
+            }
+
+            if !targeting.category_history.is_empty() {
+                let wallet_cats = WalletCategoryHistory::<T>::get(wallet);
+                let has_match = targeting
+                    .category_history
+                    .iter()
+                    .any(|cat| wallet_cats.contains(&cat.to_id()));
+                if !has_match {
+                    return false;
+                }
+            }
+
+            if !targeting.region_codes.is_empty() {
+                let region = WalletRegionCode::<T>::get(wallet);
+                match region {
+                    Some(region) if targeting.region_codes.contains(&region) => {}
+                    _ => return false,
+                }
+            }
+
+            true
+        }
+
+        /// Get a page of wallets matching targeting criteria that have not yet
+        /// been attempted for this campaign, for OCW batching. Returns the page
+        /// and whether the scan reached the end of all matching wallets.
+        fn get_matching_wallets_page(
+            targeting: &TargetingCriteria,
+            campaign_id: &[u8; 32],
+            offset: u32,
+            limit: u32,
+        ) -> (Vec<T::AccountId>, bool) {
+            let mut matches = Vec::new();
+            let mut scanned = 0u32;
+            let mut total_matched = 0u32;
+            let mut is_exhausted = true;
+
+            for (wallet, _) in WalletIndexed::<T>::iter() {
+                if !Self::wallet_matches_targeting(&wallet, targeting) {
+                    continue;
+                }
+                total_matched = total_matched.saturating_add(1);
+
+                if OcwDeliveryAttempted::<T>::get(campaign_id, &wallet) {
+                    continue;
+                }
+                if total_matched <= offset {
+                    continue;
+                }
+
+                matches.push(wallet);
+                scanned = scanned.saturating_add(1);
+
+                if scanned >= limit {
+                    is_exhausted = false;
+                    break;
+                }
+            }
+
+            (matches, is_exhausted)
         }
     }
 }

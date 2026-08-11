@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import { u8aToHex, u8aConcat, stringToU8a } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
 import { getLinkedAddresses, type LinkedAddress } from '@awarizon/sdk'
@@ -22,7 +22,7 @@ function linkMessage(address: string): string {
 export class LinksModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -45,19 +45,19 @@ export class LinksModule {
   async linkEvm(evmAddress: string, signature: string): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const extrinsic = (this.api.tx as any).awarizonLinks.linkEvmAddress(evmAddress, signature)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async linkSolana(pubkey: string, signature: string): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const extrinsic = (this.api.tx as any).awarizonLinks.linkSolanaAddress(pubkey, signature)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async unlink(chain: 'EVM' | 'Solana'): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const extrinsic = (this.api.tx as any).awarizonLinks.unlinkAddress(chain)
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   private _ownAddress(): string {

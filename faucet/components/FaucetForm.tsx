@@ -12,6 +12,9 @@ interface Result {
   error?: string
 }
 
+const X_FOLLOWED_KEY = 'awarizon_followed_x'
+const X_PROFILE_URL = 'https://x.com/awarizon'
+
 export default function FaucetForm() {
   const [address, setAddress] = useState('')
   const [captchaToken, setCaptchaToken] =
@@ -20,7 +23,18 @@ export default function FaucetForm() {
   const [result, setResult] = useState<Result | null>(
     null
   )
+  // sessionStorage (not localStorage) — the gate is meant to reappear
+  // next session, not be dismissed forever after one click.
+  const [followedX, setFollowedX] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(X_FOLLOWED_KEY) === 'true'
+  })
   const captchaRef = useRef<ReCAPTCHA>(null)
+
+  const handleFollowX = () => {
+    sessionStorage.setItem(X_FOLLOWED_KEY, 'true')
+    setFollowedX(true)
+  }
 
   const handleSubmit = async () => {
     if (!address.trim() || !captchaToken) return
@@ -62,68 +76,99 @@ export default function FaucetForm() {
   return (
     <div className="space-y-4">
 
-      {/* Address input */}
-      <div>
-        <label className="block text-sm
-          font-semibold text-[#D4D4D8] mb-2">
-          Awarizon Address or .riz Name
-        </label>
-        <input
-          type="text"
-          value={address}
-          onChange={e => setAddress(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          placeholder="5GrwvaEF... or yourname.riz"
-          disabled={status === 'loading'}
-          className="w-full px-4 py-3 rounded-xl
-            bg-[#0A0A0A] border border-white/10
-            text-white placeholder-[#333333]
-            font-mono text-sm
-            focus:outline-none
-            focus:border-[#FFCC00]/50
-            focus:ring-1 focus:ring-[#FFCC00]/20
-            disabled:opacity-50
-            transition-colors"
-        />
-      </div>
+      {!followedX ? (
+        /* Support gate — shown once per session, before the claim form */
+        <div className="rounded-xl border
+          border-[#FFCC00]/20 bg-[#FFCC00]/5 p-5
+          text-center space-y-3">
+          <p className="font-bold text-white text-sm">
+            Support our mission
+          </p>
+          <p className="text-xs text-[#8B8B93]">
+            Follow @awarizon on X to stay up to date —
+            then come back here to claim your RIZ.
+          </p>
+          <a
+            href={X_PROFILE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleFollowX}
+            className="block w-full py-3 px-6 rounded-xl
+              bg-[#FFCC00] text-[#0A0A0A]
+              font-bold text-sm text-center
+              hover:bg-[#FDE047]
+              active:bg-[#EAB308]
+              transition-all duration-150"
+          >
+            Follow on X
+          </a>
+        </div>
+      ) : (
+        <>
+          {/* Address input */}
+          <div>
+            <label className="block text-sm
+              font-semibold text-[#D4D4D8] mb-2">
+              Awarizon Address or .riz Name
+            </label>
+            <input
+              type="text"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSubmit()
+              }}
+              placeholder="5GrwvaEF... or yourname.riz"
+              disabled={status === 'loading'}
+              className="w-full px-4 py-3 rounded-xl
+                bg-[#0A0A0A] border border-white/10
+                text-white placeholder-[#333333]
+                font-mono text-sm
+                focus:outline-none
+                focus:border-[#FFCC00]/50
+                focus:ring-1 focus:ring-[#FFCC00]/20
+                disabled:opacity-50
+                transition-colors"
+            />
+          </div>
 
-      {/* reCAPTCHA */}
-      <div className="flex justify-center py-1">
-        <ReCAPTCHA
-          ref={captchaRef}
-          sitekey={
-            process.env
-              .NEXT_PUBLIC_RECAPTCHA_SITE_KEY!
-          }
-          onChange={token => setCaptchaToken(token)}
-          theme="dark"
-        />
-      </div>
+          {/* reCAPTCHA */}
+          <div className="flex justify-center py-1">
+            <ReCAPTCHA
+              ref={captchaRef}
+              sitekey={
+                process.env
+                  .NEXT_PUBLIC_RECAPTCHA_SITE_KEY!
+              }
+              onChange={token => setCaptchaToken(token)}
+              theme="dark"
+            />
+          </div>
 
-      {/* Submit */}
-      <button
-        onClick={handleSubmit}
-        disabled={
-          status === 'loading'
-          || !address.trim()
-          || !captchaToken
-        }
-        className="w-full py-3 px-6 rounded-xl
-          bg-[#FFCC00] text-[#0A0A0A]
-          font-bold text-sm
-          hover:bg-[#FDE047]
-          active:bg-[#EAB308]
-          disabled:opacity-40
-          disabled:cursor-not-allowed
-          transition-all duration-150"
-      >
-        {status === 'loading'
-          ? '⟳ Sending RIZ...'
-          : 'Request 10 RIZ'
-        }
-      </button>
+          {/* Submit */}
+          <button
+            onClick={handleSubmit}
+            disabled={
+              status === 'loading'
+              || !address.trim()
+              || !captchaToken
+            }
+            className="w-full py-3 px-6 rounded-xl
+              bg-[#FFCC00] text-[#0A0A0A]
+              font-bold text-sm
+              hover:bg-[#FDE047]
+              active:bg-[#EAB308]
+              disabled:opacity-40
+              disabled:cursor-not-allowed
+              transition-all duration-150"
+          >
+            {status === 'loading'
+              ? '⟳ Sending RIZ...'
+              : 'Request 10 RIZ'
+            }
+          </button>
+        </>
+      )}
 
       {/* Success */}
       {status === 'success' && result && (

@@ -193,6 +193,22 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// Optional reward destination for a validator. When set, claim_validator_reward()
+    /// sends rewards to this account instead of the validator's own account.
+    ///
+    /// Used by Validator-as-a-Service:
+    ///   → Operator runs the node (validator key)
+    ///   → Customer sets their wallet here
+    ///   → Rewards flow to customer automatically
+    #[pallet::storage]
+    pub type ValidatorRewardDestination<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId, // validator account
+        T::AccountId, // reward recipient
+        OptionQuery,
+    >;
+
     /// Current consensus epoch number.
     #[pallet::storage]
     pub type ConsensusEpoch<T: Config> = StorageValue<_, u64, ValueQuery>;
@@ -275,6 +291,10 @@ pub mod pallet {
         DelegatorCompensated { delegator: T::AccountId, amount: u128 },
         YieldReserveEmission { epoch: u64, amount: u128, remaining: u128 },
         FeeDeposited { amount: u128 },
+        /// Validator reward destination updated.
+        RewardDestinationSet { validator: T::AccountId, destination: T::AccountId },
+        /// Validator reward destination cleared.
+        RewardDestinationCleared { validator: T::AccountId },
     }
 
     #[pallet::error]
@@ -299,6 +319,8 @@ pub mod pallet {
         NoSlashOccurred,
         InsufficientEvidence,
         YieldReserveEmpty,
+        /// Caller is not a registered validator.
+        NotAValidator,
     }
 
     #[pallet::call]
@@ -586,7 +608,10 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Validator claims accumulated epoch rewards.
+        /// Validator claims accumulated epoch rewards. Sent to the validator's own
+        /// account, unless a reward destination has been set via
+        /// `set_reward_destination` — in that case it goes there instead (Validator-
+        /// as-a-Service: the operator runs the node, the customer receives rewards).
         #[pallet::call_index(7)]
         #[pallet::weight(Weight::from_parts(50_000_000, 0))]
         pub fn claim_validator_reward(origin: OriginFor<T>) -> DispatchResult {
@@ -598,9 +623,10 @@ pub mod pallet {
                 info.pending_validator_reward = 0;
                 Ok(amt)
             })?;
+            let recipient = ValidatorRewardDestination::<T>::get(&who).unwrap_or_else(|| who.clone());
             T::Currency::transfer(
                 &Self::fee_pool_account(),
-                &who,
+                &recipient,
                 pending.saturated_into(),
                 ExistenceRequirement::AllowDeath,
             )?;
@@ -718,6 +744,39 @@ pub mod pallet {
         pub fn init_yield_reserve(origin: OriginFor<T>) -> DispatchResult {
             T::ForceOrigin::ensure_origin(origin)?;
             YieldReserveRemaining::<T>::put(YIELD_RESERVE_TOTAL);
+            Ok(())
+        }
+
+        /// Set a reward destination for this validator. When set, all future
+        /// claim_validator_reward() calls send rewards to this account instead of the
+        /// validator's own account.
+        ///
+        /// Used by managed validator operators to route epoch rewards to their
+        /// customers. Caller must be a registered validator.
+        ///
+        /// To remove the destination, call clear_reward_destination().
+        #[pallet::call_index(14)]
+        #[pallet::weight(Weight::from_parts(50_000_000, 0))]
+        pub fn set_reward_destination(
+            origin: OriginFor<T>,
+            destination: T::AccountId,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(Validators::<T>::contains_key(&who), Error::<T>::NotAValidator);
+            ValidatorRewardDestination::<T>::insert(&who, &destination);
+            Self::deposit_event(Event::RewardDestinationSet { validator: who, destination });
+            Ok(())
+        }
+
+        /// Clear the reward destination for this validator. After clearing, rewards
+        /// go back to the validator's own account.
+        #[pallet::call_index(15)]
+        #[pallet::weight(Weight::from_parts(30_000_000, 0))]
+        pub fn clear_reward_destination(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(Validators::<T>::contains_key(&who), Error::<T>::NotAValidator);
+            ValidatorRewardDestination::<T>::remove(&who);
+            Self::deposit_event(Event::RewardDestinationCleared { validator: who });
             Ok(())
         }
     }
@@ -1020,6 +1079,12 @@ pub mod pallet {
     impl<T: Config> pallet_awarizon_types::EpochRewardDistributor for Pallet<T> {
         fn distribute_epoch_rewards(epoch: u64) -> DispatchResult {
             Self::distribute_epoch_rewards(epoch)
+        }
+    }
+
+    impl<T: Config> pallet_awarizon_types::FeeDepositor for Pallet<T> {
+        fn deposit_fee(amount: u128) {
+            Self::deposit_fee(amount)
         }
     }
 }

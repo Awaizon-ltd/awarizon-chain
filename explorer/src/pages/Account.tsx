@@ -1,9 +1,10 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   Copy, CheckCheck, Wallet, Mail, Globe, ShieldCheck,
   ShieldOff, Star, Activity, MapPin, Tag, Clock, Hash, Info,
-  CircleAlert, ArrowUpRight, Database,
+  CircleAlert, ArrowUpRight, ArrowUp, ArrowDown, Database,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { TbArrowsExchange, TbUserCircle, TbCode } from 'react-icons/tb'
 import makeBlockie from 'ethereum-blockies-base64'
@@ -11,12 +12,11 @@ import {
   useIdentity, useAccountInfo, useInboxCount,
   useWalletTargetingProfile, useDeveloperProfile,
   useDeveloperCampaigns, useDeveloperManifests,
+  useAddressTransactions,
 } from '../api/queries'
-import { getTxsByAddress } from '../db/chainDb'
-import { useIndexerStatus } from '../db/IndexerContext'
-import { formatRizAmount as fmtRiz } from '../lib/formatRiz'
+import { formatRizAmount as fmtRiz, formatRizAmountStr } from '../lib/formatRiz'
 import type { WalletTargetingProfile, DeveloperProfile } from '@awarizon/sdk'
-import type { StoredTx } from '../db/chainDb'
+import type { IndexerTransaction } from '../api/indexer'
 
 function fmtDate(ts: number): string {
   if (!ts) return '—'
@@ -133,117 +133,121 @@ function CatBadge({ label }: { label: string }) {
   )
 }
 
-/* ── tx type badge ────────────────────────────────────────────────── */
-function TxTypeBadge({ type }: { type: string }) {
-  const map: Record<string, string> = {
-    Transfer:   'bg-awz-gold/10 text-awz-gold border-awz-gold/20',
-    System:     'bg-awz-border/40 text-awz-muted border-awz-border',
-    Identity:   'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    Campaign:   'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    Developer:  'bg-green-500/10 text-green-400 border-green-500/20',
-    Validator:  'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  }
-  const cls = map[type] ?? 'bg-awz-surface text-awz-muted border-awz-border'
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase tracking-wide border ${cls}`}>
-      {type}
-    </span>
-  )
-}
-
 /* ── transaction history ──────────────────────────────────────────── */
 function TxHistory({ address }: { address: string }) {
-  const [txs, setTxs] = useState<StoredTx[]>([])
-  const [loading, setLoading] = useState(true)
-  const indexerStatus = useIndexerStatus()
+  const [page, setPage] = useState(0)
+  const limit = 20
+  const { data: txPage, isLoading, isFetching } = useAddressTransactions(address, limit, page * limit)
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    getTxsByAddress(address, 50).then(list => {
-      if (!cancelled) { setTxs(list); setLoading(false) }
-    }).catch(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [address, indexerStatus.blockCount]) // re-run when indexer adds new blocks
-
-  const userTxs = txs.filter(t => t.section !== 'timestamp' && t.section !== 'parachainSystem')
+  const txs: IndexerTransaction[] = txPage?.transactions ?? []
+  const total = txPage?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
     <Card>
       <CardHeader
         icon={<TbArrowsExchange size={15} />}
-        title={`Transaction History (${userTxs.length})`}
+        title={`Transaction History (${total.toLocaleString()})`}
         badge={
-          indexerStatus.isBackfilling
+          isFetching
             ? <span className="flex items-center gap-1 text-[10px] font-mono text-awz-yellow animate-pulse">
-                <Database size={10} /> Indexing…
+                <Database size={10} /> Loading…
               </span>
             : <span className="flex items-center gap-1 text-[10px] font-mono text-awz-muted/40">
-                <Database size={10} /> {indexerStatus.blockCount.toLocaleString()} blocks indexed
+                <Database size={10} /> via indexer
               </span>
         }
       />
-      {loading ? (
+      {isLoading ? (
         <div className="px-5 py-8 text-center">
           <p className="text-awz-muted text-xs font-mono animate-pulse">Loading transactions…</p>
         </div>
-      ) : userTxs.length === 0 ? (
+      ) : txs.length === 0 ? (
         <div className="px-5 py-10 text-center">
           <TbArrowsExchange size={32} className="text-awz-muted/20 mx-auto mb-3" />
           <p className="text-awz-text text-sm mb-1">No transactions found</p>
-          <p className="text-awz-muted text-xs">
-            {indexerStatus.isBackfilling
-              ? 'Still indexing historical blocks — check back shortly.'
-              : 'This address has no signed transactions in the indexed history.'}
-          </p>
+          <p className="text-awz-muted text-xs">This address has no transfer history yet.</p>
         </div>
       ) : (
         <div className="divide-y divide-awz-border/40">
-          {userTxs.map((tx) => (
-            <Link
-              key={tx.id}
-              to={`/tx/${tx.blockNumber}/${tx.txIndex}`}
-              className="flex items-center gap-3 px-5 py-3 hover:bg-awz-gold/5 transition-colors group"
-            >
-              {/* icon */}
-              <div className="w-8 h-8 rounded-lg bg-awz-gold/10 border border-awz-gold/20 flex items-center justify-center flex-shrink-0">
-                <TbArrowsExchange size={14} className="text-awz-gold" />
-              </div>
-
-              {/* main info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className="font-mono text-xs text-awz-text font-medium">
-                    {tx.section}<span className="text-awz-muted">.</span>{tx.method}
-                  </span>
-                  <TxTypeBadge type={tx.type} />
+          {txs.map((tx, i) => {
+            const sent = tx.direction === 'sent'
+            const counterparty = sent ? tx.to : tx.from
+            // extrinsicHash is null for rows indexed before that column
+            // existed — fall back to linking the containing block.
+            const target = tx.extrinsicHash
+              ? `/tx/${tx.blockNumber}?hash=${encodeURIComponent(tx.extrinsicHash)}`
+              : `/block/${tx.blockNumber}`
+            return (
+              <Link
+                key={`${tx.blockNumber}-${tx.from}-${tx.to}-${tx.amount}-${i}`}
+                to={target}
+                className="flex items-center gap-3 px-5 py-3 hover:bg-awz-gold/5 transition-colors group"
+              >
+                {/* direction icon */}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${
+                  sent ? 'bg-awz-yellow/10 border-awz-yellow/20' : 'bg-green-500/10 border-green-500/20'
+                }`}>
+                  {sent
+                    ? <ArrowUp size={14} className="text-awz-yellow" />
+                    : <ArrowDown size={14} className="text-green-400" />
+                  }
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-awz-muted/60">
-                  <span>Block #{tx.blockNumber.toLocaleString()}</span>
-                  <span>·</span>
-                  <span className="text-awz-muted/40 truncate max-w-36">
-                    {tx.hash.slice(0, 10)}…{tx.hash.slice(-6)}
-                  </span>
-                </div>
-              </div>
 
-              {/* time */}
-              <div className="text-right flex-shrink-0">
-                <div className="text-[10px] font-mono text-awz-muted/50 flex items-center gap-1">
-                  <Clock size={9} />
-                  {tx.timestamp > 0 ? timeAgo(tx.timestamp) : '—'}
+                {/* main info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <span className="font-mono text-xs text-awz-text font-medium">
+                      {sent ? 'Sent to' : 'Received from'}
+                    </span>
+                    <span className="font-mono text-xs text-awz-gold truncate max-w-40">
+                      {counterparty.slice(0, 8)}…{counterparty.slice(-6)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-awz-muted/60">
+                    <span>Block #{tx.blockNumber.toLocaleString()}</span>
+                    <span>·</span>
+                    <span className="text-awz-muted/40 truncate max-w-36">
+                      {tx.blockHash.slice(0, 10)}…{tx.blockHash.slice(-6)}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <ArrowUpRight size={13} className="text-awz-muted/20 group-hover:text-awz-gold transition-colors flex-shrink-0" />
-            </Link>
-          ))}
+                {/* amount + time */}
+                <div className="text-right flex-shrink-0">
+                  <div className={`font-mono text-xs font-semibold ${sent ? 'text-awz-yellow' : 'text-green-400'}`}>
+                    {sent ? '−' : '+'}{formatRizAmountStr(tx.amount)} RIZ
+                  </div>
+                  <div className="text-[10px] font-mono text-awz-muted/50 flex items-center gap-1 justify-end mt-0.5">
+                    <Clock size={9} />
+                    {tx.timestamp ? timeAgo(tx.timestamp) : '—'}
+                  </div>
+                </div>
+
+                <ArrowUpRight size={13} className="text-awz-muted/20 group-hover:text-awz-gold transition-colors flex-shrink-0" />
+              </Link>
+            )
+          })}
         </div>
       )}
 
-      {userTxs.length >= 50 && (
-        <div className="px-5 py-3 border-t border-awz-border/40 text-center">
-          <p className="text-awz-muted/50 text-[10px] font-mono">Showing last 50 transactions</p>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-5 py-3 border-t border-awz-border/40">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-awz-border text-awz-muted text-xs font-mono hover:border-awz-gold hover:text-awz-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={13} /> Prev
+          </button>
+          <span className="text-awz-muted text-xs font-mono">Page {page + 1} of {totalPages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-awz-border text-awz-muted text-xs font-mono hover:border-awz-gold hover:text-awz-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next <ChevronRight size={13} />
+          </button>
         </div>
       )}
     </Card>

@@ -4,6 +4,8 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Hash as HashIcon, Layers, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TbCube, TbArrowsExchange, TbBolt } from 'react-icons/tb'
 import { getClient } from '../api/client'
+import { useIndexerBlock, classifyExtrinsic } from '../api/queries'
+import { TxTypeBadge } from '../components/ui/TxTypeBadge'
 
 /* ── types ─────────────────────────────────────────────────────── */
 interface ExtInfo {
@@ -75,20 +77,24 @@ export function BlockDetail() {
   const { number = '' } = useParams<{ number: string }>()
   const blockNum = parseInt(number, 10)
 
+  // Indexer — fast metadata, usually available before the chain-RPC fetch resolves
+  const { data: idxBlock } = useIndexerBlock(isNaN(blockNum) ? undefined : blockNum)
+
+  // Chain RPC — full extrinsic list, state root, extrinsics root
   const [data, setData] = useState<BlockData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [chainLoading, setChainLoading] = useState(true)
+  const [chainError, setChainError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isNaN(blockNum)) {
-      setError('Invalid block number')
-      setLoading(false)
+      setChainError('Invalid block number')
+      setChainLoading(false)
       return
     }
 
     let mounted = true
-    setLoading(true)
-    setError(null)
+    setChainLoading(true)
+    setChainError(null)
     setData(null)
 
     getClient()
@@ -124,21 +130,42 @@ export function BlockDetail() {
             extrinsics: exts,
             timestamp: ts ? Number(ts.toString()) : 0,
           })
-          setLoading(false)
+          setChainLoading(false)
         }
       })
       .catch((e: Error) => {
         if (mounted) {
-          setError(e?.message ?? 'Failed to load block')
-          setLoading(false)
+          setChainError(e?.message ?? 'Failed to load block')
+          setChainLoading(false)
         }
       })
 
     return () => { mounted = false }
   }, [blockNum])
 
-  /* ── loading ── */
-  if (loading) {
+  // Merge: prefer full chain data once loaded, fall back to indexer for the
+  // instant header/stats row while chain RPC is still resolving.
+  const headerHash      = data?.hash ?? idxBlock?.blockHash
+  const headerTimestamp = data?.timestamp || idxBlock?.timestamp || 0
+  const headerExtCount  = data ? data.extrinsics.length : idxBlock?.extrinsicCount
+  const headerReady     = data !== null || (idxBlock !== null && idxBlock !== undefined)
+
+  /* ── nothing to show yet at all ── */
+  if (isNaN(blockNum)) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-awz-muted text-xs font-mono hover:text-awz-gold transition-colors w-fit">
+          <ArrowLeft size={14} /> OVERVIEW
+        </Link>
+        <div className="bg-awz-surface border border-awz-border rounded-xl p-12 text-center shadow-lg">
+          <TbCube size={44} className="text-awz-muted/20 mx-auto mb-4" />
+          <p className="text-awz-muted font-mono text-sm">Invalid block number</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!headerReady && chainLoading) {
     return (
       <div className="flex flex-col gap-6">
         <Link to="/" className="inline-flex items-center gap-1.5 text-awz-muted text-xs font-mono hover:text-awz-gold transition-colors w-fit">
@@ -152,8 +179,8 @@ export function BlockDetail() {
     )
   }
 
-  /* ── error ── */
-  if (error || !data) {
+  /* ── neither indexer nor chain has this block ── */
+  if (!headerReady && chainError) {
     return (
       <div className="flex flex-col gap-6">
         <Link to="/" className="inline-flex items-center gap-1.5 text-awz-muted text-xs font-mono hover:text-awz-gold transition-colors w-fit">
@@ -161,7 +188,7 @@ export function BlockDetail() {
         </Link>
         <div className="bg-awz-surface border border-awz-border rounded-xl p-12 text-center shadow-lg">
           <TbCube size={44} className="text-awz-muted/20 mx-auto mb-4" />
-          <p className="text-awz-muted font-mono text-sm">{error ?? 'Block not found'}</p>
+          <p className="text-awz-muted font-mono text-sm">{chainError}</p>
         </div>
       </div>
     )
@@ -177,7 +204,7 @@ export function BlockDetail() {
         </Link>
         <span className="text-awz-border">›</span>
         <span className="text-awz-muted text-xs font-mono">BLOCK</span>
-        <span className="text-awz-text text-xs font-mono font-semibold">#{data.number.toLocaleString()}</span>
+        <span className="text-awz-text text-xs font-mono font-semibold">#{blockNum.toLocaleString()}</span>
       </div>
 
       {/* title row */}
@@ -188,11 +215,11 @@ export function BlockDetail() {
           </div>
           <div>
             <h1 className="text-awz-text font-mono font-bold text-2xl">
-              Block <span className="text-awz-gold">#{data.number.toLocaleString()}</span>
+              Block <span className="text-awz-gold">#{blockNum.toLocaleString()}</span>
             </h1>
-            {data.timestamp > 0 && (
+            {headerTimestamp > 0 && (
               <p className="text-awz-muted text-xs font-mono mt-0.5">
-                {fmtDate(data.timestamp)} &middot; {timeAgo(data.timestamp)}
+                {fmtDate(headerTimestamp)} &middot; {timeAgo(headerTimestamp)}
               </p>
             )}
           </div>
@@ -200,16 +227,16 @@ export function BlockDetail() {
 
         {/* prev / next nav */}
         <div className="flex items-center gap-2">
-          {data.number > 0 && (
+          {blockNum > 0 && (
             <Link
-              to={`/block/${data.number - 1}`}
+              to={`/block/${blockNum - 1}`}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-awz-border text-awz-muted text-xs font-mono hover:border-awz-gold hover:text-awz-gold transition-colors"
             >
               <ChevronLeft size={14} /> Prev
             </Link>
           )}
           <Link
-            to={`/block/${data.number + 1}`}
+            to={`/block/${blockNum + 1}`}
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-awz-border text-awz-muted text-xs font-mono hover:border-awz-gold hover:text-awz-gold transition-colors"
           >
             Next <ChevronRight size={14} />
@@ -220,10 +247,10 @@ export function BlockDetail() {
       {/* summary stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Block Height', value: `#${data.number.toLocaleString()}` },
-          { label: 'Extrinsics', value: String(data.extrinsics.length) },
-          { label: 'Signed Txns', value: String(data.extrinsics.filter(e => e.isSigned).length) },
-          { label: 'Time', value: data.timestamp > 0 ? timeAgo(data.timestamp) : '—' },
+          { label: 'Block Height', value: `#${blockNum.toLocaleString()}` },
+          { label: 'Extrinsics', value: headerExtCount != null ? String(headerExtCount) : '—' },
+          { label: 'Signed Txns', value: data ? String(data.extrinsics.filter(e => e.isSigned).length) : '—' },
+          { label: 'Time', value: headerTimestamp > 0 ? timeAgo(headerTimestamp) : '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-awz-surface border border-awz-border rounded-xl p-4 flex flex-col gap-1 shadow-lg">
             <span className="text-awz-muted text-[10px] font-mono uppercase tracking-widest">{label}</span>
@@ -235,32 +262,40 @@ export function BlockDetail() {
       {/* block details */}
       <Section icon={<HashIcon size={16} />} title="Block Details">
         <InfoRow label="Block Hash" value={
-          <span className="text-awz-green">{data.hash}</span>
+          headerHash ? <span className="text-awz-green">{headerHash}</span> : <span className="text-awz-muted">—</span>
         } />
         <InfoRow label="Parent Hash" value={
-          data.number > 0
-            ? <Link to={`/block/${data.number - 1}`} className="text-awz-green hover:underline">{data.parentHash}</Link>
-            : <span className="text-awz-muted">{data.parentHash}</span>
+          data
+            ? (blockNum > 0
+              ? <Link to={`/block/${blockNum - 1}`} className="text-awz-green hover:underline">{data.parentHash}</Link>
+              : <span className="text-awz-muted">{data.parentHash}</span>)
+            : <span className="text-awz-muted animate-pulse">Loading from chain…</span>
         } />
         <InfoRow label="State Root" value={
-          <span className="text-awz-muted/70">{data.stateRoot}</span>
+          data ? <span className="text-awz-muted/70">{data.stateRoot}</span> : <span className="text-awz-muted animate-pulse">Loading from chain…</span>
         } />
         <InfoRow label="Extrinsics Root" value={
-          <span className="text-awz-muted/70">{data.extrinsicsRoot}</span>
+          data ? <span className="text-awz-muted/70">{data.extrinsicsRoot}</span> : <span className="text-awz-muted animate-pulse">Loading from chain…</span>
         } />
-        {data.timestamp > 0 && (
+        {headerTimestamp > 0 && (
           <InfoRow label="Timestamp" value={
             <span className="flex items-center gap-2">
               <Clock size={13} className="text-awz-muted/60 flex-shrink-0" />
-              {fmtDate(data.timestamp)}
+              {fmtDate(headerTimestamp)}
             </span>
           } />
         )}
       </Section>
 
       {/* extrinsics table */}
-      <Section icon={<Layers size={16} />} title={`Extrinsics (${data.extrinsics.length})`}>
-        {data.extrinsics.length === 0 ? (
+      <Section icon={<Layers size={16} />} title={`Extrinsics (${data ? data.extrinsics.length : headerExtCount ?? '…'})`}>
+        {!data ? (
+          <div className="py-10 text-center text-awz-muted text-sm font-mono animate-pulse">
+            {chainError
+              ? `Could not load full extrinsic details from the chain node (${chainError}).`
+              : 'Loading extrinsic details from chain…'}
+          </div>
+        ) : data.extrinsics.length === 0 ? (
           <div className="py-10 text-center text-awz-muted text-sm font-mono">
             No extrinsics in this block
           </div>
@@ -299,11 +334,14 @@ export function BlockDetail() {
                     )}
                   </span>
 
-                  {/* call + signer */}
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-sm font-mono">
-                      <span className="text-awz-text">{ext.section}.</span>
-                      <span className="text-awz-gold font-semibold">{ext.method}</span>
+                  {/* call + signer — leads with a plain-English type, raw
+                      pallet.method is kept as smaller technical detail */}
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div>
+                      <TxTypeBadge type={classifyExtrinsic(ext.section, ext.method)} size="xs" />
+                    </div>
+                    <span className="text-awz-muted/60 text-xs font-mono truncate">
+                      {ext.section}.{ext.method}
                     </span>
                     {ext.signer && (
                       <span className="text-awz-muted text-xs font-mono truncate">{truncHash(ext.signer, 14, 10)}</span>
@@ -312,7 +350,7 @@ export function BlockDetail() {
 
                   {/* hash link */}
                   <Link
-                    to={`/tx/${data.number}/${ext.index}`}
+                    to={`/tx/${blockNum}/${ext.index}`}
                     className="text-awz-green text-sm font-mono hover:underline truncate"
                   >
                     {truncHash(ext.hash)}

@@ -1,10 +1,15 @@
 mod api;
+mod cache;
 mod config;
 mod db;
 mod decode;
 mod indexer;
+mod notifications;
 
 use anyhow::Result;
+use cache::RedisCache;
+use notifications::NotificationService;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
@@ -24,6 +29,10 @@ async fn main() -> Result<()> {
 
     let pool = Arc::new(db::create_pool(&config.database_url, config.db_pool_size).await?);
 
+    let cache = RedisCache::new(&config.redis_url).await.expect("Failed to connect to Redis");
+    tracing::info!("Redis cache connected");
+    let notifier = Arc::new(NotificationService::new(cache.clone()));
+
     let (block_tx, _) = broadcast::channel::<serde_json::Value>(256);
 
     // Indexer sync loop runs in the background; the API serves whatever has
@@ -31,20 +40,32 @@ async fn main() -> Result<()> {
     {
         let config = config.clone();
         let pool = pool.clone();
+        let notifier = notifier.clone();
         let block_tx = block_tx.clone();
         tokio::spawn(async move {
-            if let Err(e) = indexer::run(config, pool, block_tx).await {
+            if let Err(e) = indexer::run(config, pool, notifier, block_tx).await {
                 tracing::error!("Indexer stopped with error: {}", e);
             }
         });
     }
 
-    let app = api::build_router(pool, block_tx);
+    // Periodic sweep for NFT collections/items whose metadata_uri was set
+    // but never resolved into name/image_url/banner_url — see
+    // indexer::metadata_resolver for why this is separate from the
+    // per-event fire-and-forget resolution in routing.rs.
+    {
+        let pool = pool.as_ref().clone();
+        tokio::spawn(indexer::metadata_resolver::run_backfill_loop(pool));
+    }
+
+    let app = api::build_router(pool, cache, notifier, block_tx);
     let addr = format!("0.0.0.0:{}", config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
     tracing::info!("API listening on {}", addr);
-    axum::serve(listener, app).await?;
+    // into_make_service_with_connect_info is required for the rate limiter's
+    // ConnectInfo<SocketAddr> extractor to resolve.
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
 
     Ok(())
 }

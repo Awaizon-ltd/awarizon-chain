@@ -82,7 +82,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("awarizon"),
 	impl_name: alloc::borrow::Cow::Borrowed("awarizon-node"),
 	authoring_version: 1,
-	spec_version: 1,
+	spec_version: 4,
 	impl_version: 1,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -265,4 +265,7 @@ mod runtime {
 
 	#[runtime::pallet_index(16)]
 	pub type AwarizonLinks = pallet_awarizon_links;
+
+	#[runtime::pallet_index(17)]
+	pub type AwarizonDex = pallet_awarizon_dex;
 }

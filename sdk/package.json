@@ -1,6 +1,6 @@
 {
   "name": "@awarizon/sdk",
-  "version": "2.1.2",
+  "version": "2.2.3",
   "description": "TypeScript SDK for the Awarizon Layer 1 blockchain",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

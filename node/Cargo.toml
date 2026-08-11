@@ -87,6 +87,8 @@ pallet-awarizon-types.workspace = true
 pallet-awarizon-types.default-features = true
 pallet-awarizon-consensus.workspace = true
 pallet-awarizon-consensus.default-features = true
+pallet-awarizon-dex.workspace = true
+pallet-awarizon-dex.default-features = true
 
 [build-dependencies]
 substrate-build-script-utils.default-features = true

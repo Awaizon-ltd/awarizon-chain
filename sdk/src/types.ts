@@ -252,3 +252,49 @@ export interface NameLookup {
   account: string              // SS58
   identity: IdentityRecord | null
 }
+
+// ----------------------------------------------------------------
+// DEX (pallets/awarizon-dex, node/src/awarizon_rpc.rs — RpcAsset/RpcPool/RpcQuote/RpcTwap)
+// Wire shape only — snake_case, exactly as the node RPC serializes it.
+// ----------------------------------------------------------------
+
+// serde representation of the pallet's Asset enum: unit variant -> bare
+// string, tuple variant -> single-key object. Same shape is used for
+// both RPC params and RPC responses.
+export type DexAssetWire = 'native' | { token: number }
+
+export interface DexPoolResponse {
+  asset_a: DexAssetWire
+  asset_b: DexAssetWire
+  reserve_a: string          // u128 as decimal string
+  reserve_b: string          // u128 as decimal string
+  lp_total_supply: string    // u128 as decimal string
+  lp_asset_id: number        // u32
+  total_volume: string       // u128 as decimal string
+  total_fees: string         // u128 as decimal string
+  total_burned: string       // u128 as decimal string
+  fee_bps: number            // u32
+  is_riz_pair: boolean
+  created_at: number         // BlockNumber
+  last_updated_block: number // BlockNumber
+}
+
+export interface DexQuoteResponse {
+  asset_in: DexAssetWire
+  asset_out: DexAssetWire
+  amount_in: string          // u128 as decimal string
+  amount_out: string         // u128 as decimal string
+  fee: string                // u128 as decimal string
+  protocol_fee: string       // u128 as decimal string
+  price_impact_bps: number   // u32
+  path: DexAssetWire[]
+  via_riz: boolean
+}
+
+export interface DexTwapResponse {
+  price_a_cumulative: string // u128 as decimal string
+  price_b_cumulative: string // u128 as decimal string
+  last_block: number         // BlockNumber
+  spot_price_a_per_b: string // u128 as decimal string
+  spot_price_b_per_a: string // u128 as decimal string
+}

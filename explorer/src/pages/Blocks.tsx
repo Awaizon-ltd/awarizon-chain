@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { TbCube } from 'react-icons/tb'
-import { useLiveChainData, useBlocksPage, timeAgo, txHashCache } from '../api/queries'
+import {
+  useIndexerLiveBlocks, useIndexerBlocksPage, useIndexerStats,
+  INDEXER_BLOCKS_LIMIT_CAP, timeAgo, txHashCache,
+} from '../api/queries'
+import type { IndexerBlock } from '../api/indexer'
+import { getRecentTransfers } from '../api/indexer'
 import { getClient } from '../api/client'
 import { getCampaign } from '@awarizon/sdk'
 
@@ -13,14 +18,30 @@ function truncHash(h: string, head = 10, tail = 8): string {
   return `${h.slice(0, head)}…${h.slice(-tail)}`
 }
 
-// Resolves a 32-byte hash: tries as block hash, then the live tx cache, then a campaign ID.
+// Resolves a 32-byte hash to a page, trying the fastest/most authoritative
+// sources first:
+//  1. Chain RPC — is it a block hash? (works for any block, including ones
+//     the indexer hasn't caught up to yet)
+//  2. Indexer's recent-transfers feed — is it a transfer's extrinsic hash?
+//     Persistent (survives refresh, works across browser sessions), unlike
+//     the in-memory txHashCache below, but only covers the most recent
+//     window of transfers.
+//  3. In-memory tx cache — covers non-transfer extrinsics (or transfers
+//     older than the indexer window) seen live in this browser session.
+//  4. Campaign ID lookup, as a last resort.
 async function resolveHash(hash: string): Promise<string | null> {
   try {
     const client = await getClient()
     const api = client.getApi()
     const signed = await (api.rpc.chain as any).getBlock(hash)
     const num: number | undefined = signed?.block?.header?.number?.toNumber?.()
-    if (num && num > 0) return `/block/${num}`
+    if (num !== undefined) return `/block/${num}`
+  } catch {}
+
+  try {
+    const recent = await getRecentTransfers(100)
+    const match = recent.find((t) => t.extrinsicHash === hash)
+    if (match) return `/tx/${match.blockNumber}?hash=${encodeURIComponent(hash)}`
   } catch {}
 
   const cached = txHashCache.get(hash)
@@ -42,7 +63,8 @@ export function Blocks() {
   const [hashResolving, setHashResolving] = useState(false)
   const [hashNotFound, setHashNotFound] = useState(false)
 
-  const { latestBlockNumber, blocks: liveBlocks } = useLiveChainData()
+  const { latestBlockNumber, blocks: liveBlocks } = useIndexerLiveBlocks()
+  const { data: idxStats } = useIndexerStats()
 
   const blockParam = searchParams.get('block')
   const hashParam  = searchParams.get('hash')
@@ -69,14 +91,19 @@ export function Blocks() {
     })
   }, [hashParam, navigate])
 
-  const { data: pageBlocks, isLoading } = useBlocksPage(latestBlockNumber, page, PAGE_SIZE)
+  const { data: pageBlocks, isLoading } = useIndexerBlocksPage(page, PAGE_SIZE)
 
-  // For page 0, show pre-loaded live blocks while the query fetches the full 20
-  const displayBlocks = (page === 0 && (!pageBlocks || pageBlocks.length === 0) && liveBlocks.length > 0)
+  // For page 0, show the already-seeded, WS-live block list while the paginated query catches up
+  const displayBlocks: IndexerBlock[] = (page === 0 && (!pageBlocks || pageBlocks.length === 0) && liveBlocks.length > 0)
     ? liveBlocks
     : (pageBlocks ?? [])
 
-  const totalPages = latestBlockNumber > 0 ? Math.ceil(latestBlockNumber / PAGE_SIZE) : 0
+  // The indexer's /blocks endpoint has no offset param — only the first
+  // INDEXER_BLOCKS_LIMIT_CAP blocks are reachable via client-side slicing.
+  const reachablePages = Math.floor(INDEXER_BLOCKS_LIMIT_CAP / PAGE_SIZE)
+  const totalPages = idxStats?.totalBlocks
+    ? Math.min(Math.ceil(idxStats.totalBlocks / PAGE_SIZE), reachablePages)
+    : 0
 
   if (hashParam && hashResolving) {
     return (
@@ -121,22 +148,22 @@ export function Blocks() {
         ) : (
           displayBlocks.map((b) => (
             <div
-              key={b.number}
+              key={b.blockNumber}
               className="grid grid-cols-[auto_1fr_64px_100px] gap-4 items-center px-5 py-3.5 border-b border-awz-border last:border-0 hover:bg-awz-gold/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <TbCube size={15} className="text-awz-gold flex-shrink-0" />
                 <Link
-                  to={`/block/${b.number}`}
+                  to={`/block/${b.blockNumber}`}
                   className="font-mono text-sm font-bold text-awz-gold hover:underline whitespace-nowrap"
                 >
-                  #{b.number.toLocaleString()}
+                  #{b.blockNumber.toLocaleString()}
                 </Link>
               </div>
-              <span className="font-mono text-sm text-awz-muted truncate">{truncHash(b.hash)}</span>
+              <span className="font-mono text-sm text-awz-muted truncate">{truncHash(b.blockHash)}</span>
               <span className="font-mono text-sm text-awz-muted text-right">{b.extrinsicCount}</span>
               <span className="font-mono text-sm text-awz-muted/60 text-right whitespace-nowrap">
-                {b.timestamp > 0 ? timeAgo(b.timestamp) : '—'}
+                {b.timestamp != null ? timeAgo(b.timestamp) : '—'}
               </span>
             </div>
           ))

@@ -53,10 +53,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check lifetime cap
+    // Check lifetime total and last successful claim
     const capCheck = await pool.query(
-      `SELECT COALESCE(SUM(amount_planck), 0)
-         AS total_sent
+      `SELECT
+         COALESCE(SUM(amount_planck), 0) AS total_sent,
+         MAX(created_at) AS last_claim
        FROM faucet_requests
        WHERE address = $1
          AND status = 'success'`,
@@ -66,6 +67,21 @@ export async function POST(req: NextRequest) {
     const totalSent = BigInt(
       capCheck.rows[0].total_sent ?? '0'
     )
+    const lastClaim = capCheck.rows[0].last_claim as Date | null
+
+    if (
+      lastClaim
+      && Date.now() - lastClaim.getTime() < 24 * 60 * 60 * 1000
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'You can only claim once per day. ' +
+            'Try again tomorrow.',
+        },
+        { status: 429 }
+      )
+    }
 
     if (totalSent >= LIFETIME_CAP) {
       return NextResponse.json(

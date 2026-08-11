@@ -15,6 +15,7 @@ members = [
     "pallets/awarizon-consensus",
     "pallets/awarizon-identity",
     "pallets/awarizon-links",
+    "pallets/awarizon-dex",
     "runtime",
 ]
 resolver = "2"
@@ -28,6 +29,7 @@ pallet-awarizon-targeting = { path = "./pallets/awarizon-targeting", default-fea
 pallet-awarizon-consensus = { path = "./pallets/awarizon-consensus", default-features = false }
 pallet-awarizon-identity = { path = "./pallets/awarizon-identity", default-features = false }
 pallet-awarizon-links = { path = "./pallets/awarizon-links", default-features = false }
+pallet-awarizon-dex = { path = "./pallets/awarizon-dex", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 clap = { version = "4.5.13" }
 frame-benchmarking-cli = { version = "47.0.0", default-features = false }

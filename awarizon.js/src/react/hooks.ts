@@ -35,5 +35,7 @@ export function useAwarizon() {
     nfts:       active?.nfts       ?? null,
     validators: active?.validators ?? null,
     network:    active?.network    ?? null,
+    history:    active?.history    ?? null,
+    dex:        active?.dex        ?? null,
   }
 }

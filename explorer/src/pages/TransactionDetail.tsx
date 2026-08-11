@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Copy, CheckCheck, Clock, Hash, Box,
   ArrowRight, Zap, User, ChevronLeft, ChevronRight,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { TbArrowsExchange, TbBolt, TbCube } from 'react-icons/tb'
 import { getClient } from '../api/client'
+import { classifyExtrinsic } from '../api/queries'
+import { TxTypeBadge } from '../components/ui/TxTypeBadge'
 import { formatRizAmount } from '../lib/formatRiz'
 
 /* ── types ─────────────────────────────────────────────────────── */
@@ -49,34 +51,23 @@ function truncate(addr: string, head = 8, tail = 6): string {
   return `${addr.slice(0, head)}…${addr.slice(-tail)}`
 }
 
-function classifySection(section: string, method: string): string {
-  if (section === 'balances') {
-    if (method.toLowerCase().includes('transfer')) return 'Transfer'
-    return 'Balances'
-  }
-  if (section === 'timestamp') return 'System'
-  if (section === 'awarizonState' || section === 'awarizon_state') {
-    if (method.toLowerCase().includes('identity') || method.toLowerCase().includes('register')) return 'Identity'
-    if (method.toLowerCase().includes('campaign')) return 'Campaign'
-    if (method.toLowerCase().includes('developer')) return 'Developer'
-    if (method.toLowerCase().includes('validator')) return 'Validator'
-    if (method.toLowerCase().includes('delegate')) return 'Delegation'
-    if (method.toLowerCase().includes('inbox') || method.toLowerCase().includes('deliver')) return 'Delivery'
-    if (method.toLowerCase().includes('engage')) return 'Engagement'
-    return 'Chain'
-  }
-  if (section === 'evm') return 'EVM'
-  if (section === 'ethereum') return 'Ethereum'
-  return section.charAt(0).toUpperCase() + section.slice(1)
+// Plain-English description of what the tx did
+// ext.method.toJSON().args is a named object keyed by argument name (e.g.
+// { dest, value } for transferKeepAlive) — field names are chain-defined, so
+// read positionally via Object.values() (insertion order matches the call's
+// argument order) rather than assuming exact names.
+function getCallArgs(args: unknown): unknown[] {
+  if (!args || typeof args !== 'object') return []
+  return Object.values(args as Record<string, unknown>)
 }
 
-// Plain-English description of what the tx did
 function describeTx(section: string, method: string, args: unknown): string {
-  const a = args as any
+  const vals = getCallArgs(args)
   if (section === 'balances') {
     if (['transferKeepAlive', 'transfer', 'transferAllowDeath', 'transferAll'].includes(method)) {
-      const dest = a?.[0]?.id ?? a?.[0]?.Id ?? a?.[0] ?? '?'
-      const raw = BigInt(String(a?.[1] ?? '0').replace(/,/g, ''))
+      const destRaw = vals[0] as any
+      const dest = destRaw?.id ?? destRaw?.Id ?? destRaw ?? '?'
+      const raw = BigInt(String(vals[1] ?? '0').replace(/,/g, ''))
       return `Transferred ${formatRizAmount(raw)} RIZ to ${truncate(String(dest))}`
     }
     return `Balances operation: ${method}`
@@ -100,10 +91,11 @@ function describeTx(section: string, method: string, args: unknown): string {
 
 // Extract transfer from/to/amount for visual flow card
 function extractTransfer(section: string, method: string, args: unknown, signer?: string) {
-  const a = args as any
+  const vals = getCallArgs(args)
   if (section === 'balances' && ['transferKeepAlive', 'transfer', 'transferAllowDeath'].includes(method)) {
-    const dest = a?.[0]?.id ?? a?.[0]?.Id ?? String(a?.[0] ?? '')
-    const raw = BigInt(String(a?.[1] ?? '0').replace(/,/g, ''))
+    const destRaw = vals[0] as any
+    const dest = destRaw?.id ?? destRaw?.Id ?? String(destRaw ?? '')
+    const raw = BigInt(String(vals[1] ?? '0').replace(/,/g, ''))
     return { from: signer ?? '?', to: String(dest), amount: raw }
   }
   return null
@@ -190,40 +182,24 @@ function StatMini({ label, value, sub, link }: {
   )
 }
 
-/* ── type badge ─────────────────────────────────────────────────── */
-function TypeBadge({ type }: { type: string }) {
-  const colours: Record<string, string> = {
-    Transfer:   'bg-awz-gold/10 text-awz-gold border-awz-gold/20',
-    System:     'bg-awz-border/60 text-awz-muted border-awz-border',
-    Identity:   'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    Campaign:   'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    Developer:  'bg-green-500/10 text-green-400 border-green-500/20',
-    Validator:  'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    Delegation: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
-    Delivery:   'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-    Engagement: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  }
-  const cls = colours[type] ?? 'bg-awz-surface text-awz-muted border-awz-border'
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider border ${cls}`}>
-      {type}
-    </span>
-  )
-}
-
 /* ── page ─────────────────────────────────────────────────────────── */
 export function TransactionDetail() {
-  const { blockNumber = '', index = '' } = useParams<{ blockNumber: string; index: string }>()
+  const { blockNumber = '', index } = useParams<{ blockNumber: string; index?: string }>()
+  const [searchParams] = useSearchParams()
+  const hashParam = searchParams.get('hash')
   const blockNum = parseInt(blockNumber, 10)
-  const extIdx = parseInt(index, 10)
+  // Index comes straight from the URL for /tx/:block/:index links (recent-activity,
+  // block-detail rows). Indexer-sourced links only know the tx hash, not its position
+  // in the block, so /tx/:block?hash=... resolves the index below once the block loads.
+  const urlIdx = index !== undefined ? parseInt(index, 10) : NaN
 
   const [data, setData] = useState<TxData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isNaN(blockNum) || isNaN(extIdx)) {
-      setError('Invalid block number or index')
+    if (isNaN(blockNum) || (isNaN(urlIdx) && !hashParam)) {
+      setError('Invalid block number or transaction reference')
       setLoading(false)
       return
     }
@@ -242,11 +218,20 @@ export function TransactionDetail() {
         ])
 
         const exts: any[] = Array.from(signedBlock.block.extrinsics)
+
+        const extIdx = !isNaN(urlIdx)
+          ? urlIdx
+          : exts.findIndex((e: any) => e.hash?.toHex?.() === hashParam)
+
+        if (extIdx < 0) throw new Error(`Transaction ${hashParam ?? `#${urlIdx}`} not found in block #${blockNum}`)
         if (extIdx >= exts.length) throw new Error(`Extrinsic #${extIdx} not found in block #${blockNum}`)
 
         const ext = exts[extIdx]
+        // ext.method.args is a plain array of Codec instances with no
+        // .toJSON() of its own — decode the whole Call instead and pull its
+        // .args, which is the properly JSON-encoded, name-keyed struct.
         let parsedArgs: unknown = null
-        try { parsedArgs = ext.method?.args?.toJSON?.() } catch {}
+        try { parsedArgs = (ext.method?.toJSON?.() as any)?.args ?? null } catch {}
 
         if (mounted) {
           setData({
@@ -270,7 +255,7 @@ export function TransactionDetail() {
       })
 
     return () => { mounted = false }
-  }, [blockNum, extIdx])
+  }, [blockNum, urlIdx, hashParam])
 
   /* ── loading ── */
   if (loading) return (
@@ -298,7 +283,7 @@ export function TransactionDetail() {
     </div>
   )
 
-  const txType = classifySection(data.section, data.method)
+  const txType = classifyExtrinsic(data.section, data.method)
   const description = describeTx(data.section, data.method, data.args)
   const transfer = extractTransfer(data.section, data.method, data.args, data.signer)
   const prevIdx = data.index > 0 ? data.index - 1 : null
@@ -339,7 +324,7 @@ export function TransactionDetail() {
                 <span className="text-awz-border mx-0.5">.</span>
                 <span className="text-awz-gold">{data.method}</span>
               </h1>
-              <TypeBadge type={txType} />
+              <TxTypeBadge type={txType} />
               <span className="inline-flex items-center gap-1 text-[10px] font-mono text-green-400/80 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
                 <CircleCheck size={10} /> Success
               </span>
@@ -481,16 +466,22 @@ export function TransactionDetail() {
         <div className="flex flex-col gap-5">
           <Card>
             <CardHeader icon={<Zap size={15} />} title="Call Summary" />
-            <DataRow label="Pallet" hint="The on-chain module this call belongs to">{data.section}</DataRow>
+            <DataRow label="Category" hint="A plain-English summary of what this call does">
+              <TxTypeBadge type={txType} />
+            </DataRow>
             <div className="border-t border-awz-border/50" />
-            <DataRow label="Function" hint="The specific action called within the pallet">
+            <DataRow label="Module" hint="The on-chain module this call belongs to, as named in the chain's raw metadata">
+              {data.section}
+            </DataRow>
+            <div className="border-t border-awz-border/50" />
+            <DataRow label="Action" hint="The specific function called within that module">
               <span className="text-awz-gold">{data.method}</span>
             </DataRow>
             <div className="border-t border-awz-border/50" />
-            <DataRow label="Type" hint="Whether this transaction was signed by a user account or submitted as a system operation">
+            <DataRow label="Submitted By" hint="Whether a user wallet signed and submitted this, or the network created it automatically">
               {data.isSigned
-                ? <span className="flex items-center gap-1.5 text-awz-gold"><CircleCheck size={13} /> Signed by user</span>
-                : <span className="flex items-center gap-1.5 text-awz-muted"><TbBolt size={13} /> System / Inherent</span>
+                ? <span className="flex items-center gap-1.5 text-awz-gold"><CircleCheck size={13} /> A user wallet</span>
+                : <span className="flex items-center gap-1.5 text-awz-muted"><TbBolt size={13} /> The network (automatic)</span>
               }
             </DataRow>
             <div className="border-t border-awz-border/50" />

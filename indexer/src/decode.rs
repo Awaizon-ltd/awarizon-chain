@@ -69,6 +69,10 @@ pub fn field_u32(composite: &Composite<u32>, name: &str) -> Option<u32> {
     field_u128(composite, name).and_then(|n| u32::try_from(n).ok())
 }
 
+pub fn field_u8(composite: &Composite<u32>, name: &str) -> Option<u8> {
+    field_u128(composite, name).and_then(|n| u8::try_from(n).ok())
+}
+
 /// Render 32 raw bytes as an SS58 address (ss58Format 42, this chain's default —
 /// see node/src/chain_spec.rs).
 pub fn ss58(bytes: [u8; 32]) -> String {
@@ -122,4 +126,78 @@ fn as_utf8(value: &Value<u32>) -> Option<String> {
 /// Look up a named `Vec<u8>` or `Option<Vec<u8>>` field as a UTF-8 string.
 pub fn field_string(composite: &Composite<u32>, name: &str) -> Option<String> {
     find_named(composite, name).and_then(unwrap_option).and_then(as_utf8)
+}
+
+fn as_bool(value: &Value<u32>) -> Option<bool> {
+    match &value.value {
+        ValueDef::Primitive(Primitive::Bool(b)) => Some(*b),
+        _ => None,
+    }
+}
+
+/// Look up a named `bool` field.
+pub fn field_bool(composite: &Composite<u32>, name: &str) -> Option<bool> {
+    find_named(composite, name).and_then(as_bool)
+}
+
+/// Decode a value shaped as `pallet_awarizon_dex::types::Asset` (`Native` or `Token(u32)`)
+/// into `"native"` or `"token:42"`.
+fn as_asset(value: &Value<u32>) -> Option<String> {
+    match &value.value {
+        ValueDef::Variant(v) if v.name == "Native" => Some("native".to_string()),
+        ValueDef::Variant(v) if v.name == "Token" => {
+            let id = as_u128(v.values.values().next()?)?;
+            Some(format!("token:{id}"))
+        }
+        _ => None,
+    }
+}
+
+/// Look up a named `Asset` field as `"native"` / `"token:42"`.
+pub fn field_asset(composite: &Composite<u32>, name: &str) -> Option<String> {
+    find_named(composite, name).and_then(as_asset)
+}
+
+/// Decode a value shaped as `pallet_awarizon_dex::types::PoolId { asset_a, asset_b }`.
+fn as_pool_id(value: &Value<u32>) -> Option<(String, String)> {
+    match &value.value {
+        ValueDef::Composite(Composite::Named(fields)) => {
+            let asset_a = fields.iter().find(|(n, _)| n == "asset_a").map(|(_, v)| v).and_then(as_asset)?;
+            let asset_b = fields.iter().find(|(n, _)| n == "asset_b").map(|(_, v)| v).and_then(as_asset)?;
+            Some((asset_a, asset_b))
+        }
+        _ => None,
+    }
+}
+
+/// Look up a named `PoolId` field as an `(asset_a, asset_b)` string pair.
+pub fn field_pool_id(composite: &Composite<u32>, name: &str) -> Option<(String, String)> {
+    find_named(composite, name).and_then(as_pool_id)
+}
+
+/// Look up a named `Vec<Asset>` field (the DEX router's swap path) as a list of
+/// `"native"` / `"token:42"` strings, in path order.
+pub fn field_asset_vec(composite: &Composite<u32>, name: &str) -> Option<Vec<String>> {
+    let value = find_named(composite, name)?;
+    match &value.value {
+        ValueDef::Composite(Composite::Unnamed(items)) => items.iter().map(as_asset).collect(),
+        _ => None,
+    }
+}
+
+/// Look up a named `Vec<u8>` / `BoundedVec<u8, N>` field as raw bytes (not
+/// UTF-8 text) — used for `category_history`, where each byte is an
+/// `AppCategory` enum discriminant rather than string data.
+pub fn field_u8_vec(composite: &Composite<u32>, name: &str) -> Option<Vec<u8>> {
+    let value = find_named(composite, name)?;
+    match &value.value {
+        ValueDef::Composite(Composite::Unnamed(items)) => items
+            .iter()
+            .map(|v| match &v.value {
+                ValueDef::Primitive(Primitive::U128(n)) => u8::try_from(*n).ok(),
+                _ => None,
+            })
+            .collect(),
+        _ => None,
+    }
 }

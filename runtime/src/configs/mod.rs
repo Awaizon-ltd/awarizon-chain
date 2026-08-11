@@ -44,7 +44,7 @@ use sp_version::RuntimeVersion;
 
 // Local module imports
 use super::{
-	AccountId, Aura, AwarizonConsensus, Balance, Balances, Block, BlockNumber, Hash, Nonce,
+	AccountId, Assets, Aura, AwarizonConsensus, Balance, Balances, Block, BlockNumber, Hash, Nonce,
 	PalletInfo, RandomnessFromParentHash, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Signature, System,
 	Timestamp, UncheckedExtrinsic, EXISTENTIAL_DEPOSIT, MICRO_UNIT, SLOT_DURATION, UNIT, VERSION,
@@ -210,6 +210,10 @@ parameter_types! {
 	pub const ValidatorRewardsPalletId: PalletId = PalletId(*b"riz/vldr");
 	pub const FeePoolPalletId: PalletId = PalletId(*b"riz/fees");
 	pub const InsurancePalletId: PalletId = PalletId(*b"riz/insr");
+
+	pub const DexPalletId: PalletId = pallet_awarizon_types::constants::DEX_PALLET_ID;
+	pub const DexMinimumLiquidity: u128 = pallet_awarizon_types::constants::MINIMUM_LIQUIDITY;
+	pub const DexMaxRouterHops: u32 = pallet_awarizon_types::constants::MAX_ROUTER_HOPS;
 }
 
 /// Routes transaction fees into the epoch fee pool instead of burning them, and notifies
@@ -414,4 +418,14 @@ impl pallet_awarizon_identity::Config for Runtime {
 impl pallet_awarizon_links::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
+}
+
+impl pallet_awarizon_dex::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type Assets = Assets;
+	type PalletId = DexPalletId;
+	type MinimumLiquidity = DexMinimumLiquidity;
+	type MaxRouterHops = DexMaxRouterHops;
+	type FeeDepositor = AwarizonConsensus;
 }

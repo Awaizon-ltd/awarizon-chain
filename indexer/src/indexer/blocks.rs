@@ -2,6 +2,7 @@ use super::{events, NodeClient};
 use crate::db::queries;
 use crate::db::sqlx_compat::PgPool;
 use crate::decode;
+use crate::notifications::NotificationService;
 use anyhow::Result;
 use std::collections::HashMap;
 use subxt::blocks::Block;
@@ -13,6 +14,7 @@ use tokio::sync::broadcast;
 
 pub async fn process_block(
     pool: &PgPool,
+    notifier: &NotificationService,
     block: Block<SubstrateConfig, NodeClient>,
     block_tx: &broadcast::Sender<serde_json::Value>,
 ) -> Result<()> {
@@ -82,7 +84,8 @@ pub async fn process_block(
         let method = ext.variant_name().unwrap_or("unknown").to_string();
         let signer = signer_ss58(&ext);
         let success = success_by_index.get(&idx).copied().unwrap_or(true);
-        let args = ext.field_values().ok().map(|f| decode::composite_to_json(&f));
+        let call_fields = ext.field_values().ok();
+        let args = call_fields.as_ref().map(decode::composite_to_json);
 
         queries::insert_extrinsic(
             pool,
@@ -98,6 +101,43 @@ pub async fn process_block(
             args,
         )
         .await?;
+
+        // `AwarizonState.update_wallet_index`'s targeting fields
+        // (wallet_age_days/activity_count/category_history/region_code) are
+        // call arguments, not `WalletIndexUpdated` event fields — that event
+        // only carries the wallet address — so this is indexed from the
+        // extrinsic here rather than through the generic per-event routing
+        // in `events::route_event`.
+        if success && pallet == "AwarizonState" && method == "update_wallet_index" {
+            if let (Some(fields), Some(wallet)) = (call_fields.as_ref(), signer.as_deref()) {
+                let wallet_age_days = decode::field_u32(fields, "wallet_age_days").unwrap_or(0);
+                let activity_count = decode::field_u32(fields, "activity_count").unwrap_or(0);
+                let region_code = decode::field_u8(fields, "region_code").unwrap_or(0);
+                let category_history: Vec<i32> = decode::field_u8_vec(fields, "category_history")
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|&c| c as i32)
+                    .collect();
+
+                queries::upsert_wallet_index(
+                    pool,
+                    wallet,
+                    wallet_age_days as i32,
+                    activity_count as i32,
+                    &category_history,
+                    region_code as i16,
+                    block_number,
+                )
+                .await?;
+
+                if let Err(e) = notifier.cache().del_pattern("idx:walletindex:*").await {
+                    tracing::warn!("Failed to invalidate cache pattern idx:walletindex:*: {}", e);
+                }
+                if let Err(e) = notifier.cache().del_pattern("idx:targeting:*").await {
+                    tracing::warn!("Failed to invalidate cache pattern idx:targeting:*: {}", e);
+                }
+            }
+        }
     }
 
     for (idx, ev) in block_events.iter().enumerate() {
@@ -140,6 +180,7 @@ pub async fn process_block(
 
         events::route_event(
             pool,
+            notifier,
             block_number,
             &block_hash,
             idx as i32,

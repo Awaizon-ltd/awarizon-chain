@@ -8,3 +8,21 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 # Send everything else to index.html so React Router handles it
 RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  # index.html references the current build's content-hashed bundle
+  # filenames — a cached copy of it keeps pointing at an old (possibly
+  # deleted, possibly route-incompatible) build indefinitely after every
+  # deploy. Without this, browsers apply heuristic caching based on
+  # Last-Modified/ETag and can silently serve a stale shell.
+  <Files "index.html">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </Files>
+
+  # Vite's build output is content-hashed (filename changes whenever the
+  # content does), so these are safe to cache for as long as possible — a
+  # new deploy is always a new filename, never a stale one under an old name.
+  <FilesMatch "\.(js|css|woff2?|ttf|eot)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>

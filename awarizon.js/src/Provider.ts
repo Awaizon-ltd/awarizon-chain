@@ -1,7 +1,7 @@
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import { awarizonTypes, awarizonRpc }
   from '@awarizon/sdk'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from './utils'
 import { WalletModule } from './modules/wallet'
 import { InboxModule } from './modules/inbox'
 import { IdentityModule } from './modules/identity'
@@ -13,7 +13,14 @@ import { AssetsModule } from './modules/assets'
 import { NFTsModule } from './modules/nfts'
 import { ValidatorsModule } from './modules/validators'
 import { NetworkModule } from './modules/network'
+import { HistoryModule } from './modules/history'
+import { DexModule } from './modules/dex'
 import { AwarizonError } from './errors'
+import { DEFAULT_INDEXER_ENDPOINT } from './constants'
+
+export interface ProviderOptions {
+  indexerEndpoint?: string
+}
 
 export class Provider {
   protected api: ApiPromise | null = null
@@ -31,14 +38,23 @@ export class Provider {
   nfts!: NFTsModule
   validators!: ValidatorsModule
   network!: NetworkModule
+  dex!: DexModule
+  // Backed by the indexer, not the chain node — works pre-connect()
+  history: HistoryModule
 
-  constructor(endpoint?: string) {
+  constructor(endpoint?: string, options?: ProviderOptions) {
     this._endpoint = endpoint
       ?? getDefaultEndpoint()
+    this.history = new HistoryModule(
+      options?.indexerEndpoint ?? DEFAULT_INDEXER_ENDPOINT
+    )
   }
 
-  static async connect(endpoint?: string): Promise<Provider> {
-    const p = new Provider(endpoint)
+  static async connect(
+    endpoint?: string,
+    options?: ProviderOptions
+  ): Promise<Provider> {
+    const p = new Provider(endpoint, options)
     await p._connect()
     return p
   }
@@ -55,7 +71,7 @@ export class Provider {
   }
 
   protected _initModules(
-    pair: KeyringPair | null
+    pair: SigningSource | null
   ): void {
     const api = this.api!
     this.wallet = new WalletModule(api, pair)
@@ -69,6 +85,7 @@ export class Provider {
     this.nfts = new NFTsModule(api, pair)
     this.validators = new ValidatorsModule(api, pair)
     this.network = new NetworkModule(api)
+    this.dex = new DexModule(api, pair)
   }
 
   getApi(): ApiPromise {

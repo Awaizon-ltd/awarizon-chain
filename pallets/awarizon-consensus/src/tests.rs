@@ -3,7 +3,7 @@ use crate::mock::*;
 use crate::pallet::{
     ActiveValidators, ConsensusEpoch, Delegations, Error, Event, EpochRewardHistory,
     InsurancePoolBalance, PendingDelegatorRewards, TotalValidatorCount, ValidatorDelegatedStake,
-    Validators, YieldReserveRemaining,
+    ValidatorRewardDestination, Validators, YieldReserveRemaining,
 };
 use crate::performance::PerformanceCalculator;
 use crate::{SlashReason, ValidatorInfo};
@@ -751,5 +751,110 @@ fn init_yield_reserve_requires_root() {
         );
         assert_ok!(AwarizonConsensus::init_yield_reserve(RuntimeOrigin::root()));
         assert_eq!(YieldReserveRemaining::<Test>::get(), YIELD_RESERVE_TOTAL);
+    });
+}
+
+// ================================================================
+// Reward destination (Validator-as-a-Service)
+// ================================================================
+
+#[test]
+fn set_reward_destination_requires_registered_validator() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            AwarizonConsensus::set_reward_destination(RuntimeOrigin::signed(V1), V2),
+            Error::<Test>::NotAValidator
+        );
+        assert_noop!(
+            AwarizonConsensus::clear_reward_destination(RuntimeOrigin::signed(V1)),
+            Error::<Test>::NotAValidator
+        );
+    });
+}
+
+#[test]
+fn claim_validator_reward_routes_to_destination_when_set() {
+    // Genesis only seeds accounts 1-5 (see mock::new_test_ext) — deliberately
+    // outside that range so the assertion below actually proves the
+    // destination-routed transfer works for a wallet that never held a
+    // balance before, not just one that already happened to have funds.
+    const CUSTOMER: u64 = 500_000;
+
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1); // events aren't recorded at block 0
+        assert_ok!(AwarizonConsensus::register_validator(
+            RuntimeOrigin::signed(V1),
+            STAKE,
+            REGION_NA,
+            COUNTRY_US,
+        ));
+        Balances::make_free_balance_be(&fee_pool_account(), 1_000_000u128);
+        Validators::<Test>::mutate(V1, |maybe| {
+            maybe.as_mut().unwrap().pending_validator_reward = 500u128;
+        });
+
+        assert_eq!(Balances::free_balance(CUSTOMER), 0);
+
+        assert_ok!(AwarizonConsensus::set_reward_destination(RuntimeOrigin::signed(V1), CUSTOMER));
+        assert!(matches!(
+            last_event(),
+            RuntimeEvent::AwarizonConsensus(Event::RewardDestinationSet {
+                validator: V1,
+                destination: CUSTOMER,
+            })
+        ));
+        assert_eq!(ValidatorRewardDestination::<Test>::get(V1), Some(CUSTOMER));
+
+        let v1_before = Balances::free_balance(V1);
+        assert_ok!(AwarizonConsensus::claim_validator_reward(RuntimeOrigin::signed(V1)));
+
+        // Reward landed at the destination, not the validator.
+        assert_eq!(Balances::free_balance(CUSTOMER), 500);
+        assert_eq!(Balances::free_balance(V1), v1_before);
+        assert_eq!(Validators::<Test>::get(V1).unwrap().pending_validator_reward, 0);
+        assert!(matches!(
+            last_event(),
+            RuntimeEvent::AwarizonConsensus(Event::ValidatorRewardClaimed {
+                validator: V1,
+                amount: 500,
+            })
+        ));
+
+        // Clearing restores self-payout for the next claim.
+        assert_ok!(AwarizonConsensus::clear_reward_destination(RuntimeOrigin::signed(V1)));
+        assert!(matches!(
+            last_event(),
+            RuntimeEvent::AwarizonConsensus(Event::RewardDestinationCleared { validator: V1 })
+        ));
+        assert_eq!(ValidatorRewardDestination::<Test>::get(V1), None);
+
+        Validators::<Test>::mutate(V1, |maybe| {
+            maybe.as_mut().unwrap().pending_validator_reward = 200u128;
+        });
+        let v1_before = Balances::free_balance(V1);
+        assert_ok!(AwarizonConsensus::claim_validator_reward(RuntimeOrigin::signed(V1)));
+        assert_eq!(Balances::free_balance(V1), v1_before + 200);
+        // Destination account received nothing further from this second claim.
+        assert_eq!(Balances::free_balance(CUSTOMER), 500);
+    });
+}
+
+#[test]
+fn claim_validator_reward_without_destination_still_pays_self() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AwarizonConsensus::register_validator(
+            RuntimeOrigin::signed(V1),
+            STAKE,
+            REGION_NA,
+            COUNTRY_US,
+        ));
+        Balances::make_free_balance_be(&fee_pool_account(), 1_000_000u128);
+        Validators::<Test>::mutate(V1, |maybe| {
+            maybe.as_mut().unwrap().pending_validator_reward = 300u128;
+        });
+
+        let before = Balances::free_balance(V1);
+        assert_ok!(AwarizonConsensus::claim_validator_reward(RuntimeOrigin::signed(V1)));
+        assert_eq!(Balances::free_balance(V1), before + 300);
     });
 }

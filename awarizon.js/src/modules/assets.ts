@@ -1,5 +1,5 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { KeyringPair } from '@polkadot/keyring/types'
+import type { SigningSource } from '../utils'
 import { buildCreateAsset, buildMintAsset, buildTransferAsset } from '@awarizon/sdk'
 import { AwarizonError } from '../errors'
 import {
@@ -31,7 +31,7 @@ function formatAssetAmount(planck: bigint, decimals: number): string {
 export class AssetsModule {
   constructor(
     private api: ApiPromise,
-    private pair: KeyringPair | null
+    private pair: SigningSource | null
   ) {}
 
   // READ — works without keypair (pair can be null)
@@ -76,28 +76,28 @@ export class AssetsModule {
     const extrinsic = buildCreateAsset(
       this.api, params.assetId, admin, parseAmount(params.minBalance)
     )
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async mint(assetId: number, to: string, amount: AmountInput): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const dest = await resolveAddress(to, this.api)
     const extrinsic = buildMintAsset(this.api, assetId, dest, parseAmount(amount))
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async transfer(assetId: number, to: string, amount: AmountInput): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const dest = await resolveAddress(to, this.api)
     const extrinsic = buildTransferAsset(this.api, assetId, dest, parseAmount(amount))
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   async burn(assetId: number, who: string, amount: AmountInput): Promise<TxResult> {
     if (!this.pair) throw AwarizonError.notSigned()
     const target = await resolveAddress(who, this.api)
     const extrinsic = (this.api.tx as any).assets.burn(assetId, target, parseAmount(amount))
-    return submitAndWait(extrinsic, this.pair)
+    return submitAndWait(extrinsic, this.pair, this.api)
   }
 
   private _ownAddress(): string {

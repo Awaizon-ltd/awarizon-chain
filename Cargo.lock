@@ -796,6 +796,7 @@ dependencies = [
  "hex",
  "jsonrpsee",
  "pallet-awarizon-consensus",
+ "pallet-awarizon-dex",
  "pallet-awarizon-types",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
@@ -5871,6 +5872,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-awarizon-dex"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "pallet-awarizon-types",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-awarizon-identity"
 version = "0.1.0"
 dependencies = [
@@ -9580,6 +9597,7 @@ dependencies = [
  "pallet-assets",
  "pallet-aura",
  "pallet-awarizon-consensus",
+ "pallet-awarizon-dex",
  "pallet-awarizon-identity",
  "pallet-awarizon-links",
  "pallet-awarizon-state",

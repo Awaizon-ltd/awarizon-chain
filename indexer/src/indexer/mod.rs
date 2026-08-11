@@ -1,10 +1,12 @@
 pub mod blocks;
 pub mod events;
+pub mod metadata_resolver;
 pub mod routing;
 
 use crate::config::Config;
 use crate::db::sqlx_compat::PgPool;
 use crate::db::queries;
+use crate::notifications::NotificationService;
 use anyhow::Result;
 use std::sync::Arc;
 use subxt::backend::legacy::LegacyRpcMethods;
@@ -19,6 +21,7 @@ pub type NodeClient = OnlineClient<SubstrateConfig>;
 pub async fn run(
     config: Arc<Config>,
     pool: Arc<PgPool>,
+    notifier: Arc<NotificationService>,
     block_tx: broadcast::Sender<serde_json::Value>,
 ) -> Result<()> {
     tracing::info!("Connecting to node: {}", config.node_url);
@@ -47,7 +50,7 @@ pub async fn run(
             let end = (block_num + config.batch_size).min(current_block + 1);
 
             for n in block_num..end {
-                if let Err(e) = sync_block_by_number(&client, &legacy_rpc, &pool, n, &block_tx).await {
+                if let Err(e) = sync_block_by_number(&client, &legacy_rpc, &pool, &notifier, n, &block_tx).await {
                     tracing::error!("Error processing block {}: {}", n, e);
                 }
             }
@@ -72,7 +75,7 @@ pub async fn run(
     while let Some(block_result) = tokio_stream::StreamExt::next(&mut block_sub).await {
         match block_result {
             Ok(block) => {
-                if let Err(e) = blocks::process_block(&pool, block, &block_tx).await {
+                if let Err(e) = blocks::process_block(&pool, &notifier, block, &block_tx).await {
                     tracing::error!("Error processing live block: {}", e);
                 }
             }
@@ -90,6 +93,7 @@ async fn sync_block_by_number(
     client: &NodeClient,
     legacy_rpc: &LegacyRpcMethods<SubstrateConfig>,
     pool: &PgPool,
+    notifier: &NotificationService,
     block_number: u64,
     block_tx: &broadcast::Sender<serde_json::Value>,
 ) -> Result<()> {
@@ -99,5 +103,5 @@ async fn sync_block_by_number(
         .ok_or_else(|| anyhow::anyhow!("block {} not found", block_number))?;
 
     let block = client.blocks().at(hash).await?;
-    blocks::process_block(pool, block, block_tx).await
+    blocks::process_block(pool, notifier, block, block_tx).await
 }

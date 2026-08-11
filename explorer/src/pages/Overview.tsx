@@ -11,39 +11,24 @@ import {
   Users, Wallet, Megaphone, Send, PiggyBank,
 } from 'lucide-react'
 import { RiStackLine, RiExchangeLine } from 'react-icons/ri'
-import { TbCube, TbArrowsExchange, TbBolt } from 'react-icons/tb'
+import { TbCube, TbArrowsExchange } from 'react-icons/tb'
 import {
   useNetworkStats,
+  useAccountCount,
   useValidatorCount,
+  useValidatorStakeTotal,
   useLiveChainData,
+  useIndexerStats,
+  useIndexerLiveBlocks,
+  useRecentTransfers,
   calcEpochCountdown,
   timeAgo,
 } from '../api/queries'
-import type { BlockInfo, TxInfo } from '../api/queries'
+import type { IndexerBlock, RecentTransfer } from '../api/indexer'
 import { NetworkInfoCard } from '../components/NetworkInfoCard'
+import { TxTypeBadge } from '../components/ui/TxTypeBadge'
 import { getClient } from '../api/client'
 import { formatRizAmount, formatRizAmountStr } from '../lib/formatRiz'
-
-function typeColor(type: string): string {
-  switch (type) {
-    case 'Transfer':    return 'bg-emerald-500/10 text-emerald-400'
-    case 'Campaign':    return 'bg-awz-gold/10 text-awz-gold'
-    case 'Delivery':    return 'bg-green-500/10 text-green-400'
-    case 'Engagement':  return 'bg-orange-500/10 text-orange-400'
-    case 'Developer':   return 'bg-blue-500/10 text-blue-400'
-    case 'Manifest':    return 'bg-indigo-500/10 text-indigo-400'
-    case 'Validator':   return 'bg-yellow-500/10 text-yellow-400'
-    case 'Delegation':  return 'bg-amber-500/10 text-amber-400'
-    case 'Staking':     return 'bg-purple-500/10 text-purple-400'
-    case 'Vesting':     return 'bg-pink-500/10 text-pink-400'
-    case 'Contract Call':
-    case 'Deploy':
-    case 'EVM':
-    case 'Ethereum':    return 'bg-violet-500/10 text-violet-400'
-    case 'Sudo':        return 'bg-red-500/10 text-red-400'
-    default:            return 'bg-awz-border text-awz-muted'
-  }
-}
 
 function truncHash(hash: string, head = 10, tail = 6): string {
   if (!hash || hash.length < head + tail + 3) return hash
@@ -130,7 +115,7 @@ function Cell({ icon, label, children }: { icon: ReactNode; label: string; child
 }
 
 /* ── Recent Blocks panel ─────────────────────────────────────────── */
-function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
+function RecentBlocksList({ blocks }: { blocks: IndexerBlock[] }) {
   return (
     <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col shadow-lg">
       {/* panel title */}
@@ -144,7 +129,7 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
 
       {blocks.length === 0 ? (
         <div className="px-5 py-10 text-center text-awz-muted text-sm font-mono">
-          Connecting to chain…
+          Loading recent blocks…
         </div>
       ) : (
         <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
@@ -160,28 +145,30 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
           </thead>
           <tbody>
             {blocks.map((b) => (
-              <tr key={b.number} className="hover:bg-awz-gold/5 transition-colors group">
+              <tr key={b.blockNumber} className="hover:bg-awz-gold/5 transition-colors group">
                 <td className="pl-5 pr-2 py-3">
                   <TbCube size={18} className="text-awz-gold" />
                 </td>
                 <td className="px-2 py-3 overflow-hidden">
                   <Link
-                    to={`/block/${b.number}`}
+                    to={`/block/${b.blockNumber}`}
                     className="font-mono text-sm font-bold text-awz-text group-hover:text-awz-gold transition-colors whitespace-nowrap"
                   >
-                    #{b.number.toLocaleString()}
+                    #{b.blockNumber.toLocaleString()}
                   </Link>
                 </td>
                 <td className="px-2 py-3 overflow-hidden">
                   <span className="font-mono text-sm text-awz-muted block truncate">
-                    {truncHash(b.hash)}
+                    {truncHash(b.blockHash)}
                   </span>
                 </td>
                 <td className="px-2 py-3 text-right">
                   <span className="font-mono text-sm text-awz-muted">{b.extrinsicCount}</span>
                 </td>
                 <td className="pl-6 pr-5 py-3 text-right">
-                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(b.timestamp)}</span>
+                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">
+                    {b.timestamp != null ? timeAgo(b.timestamp) : '—'}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -194,7 +181,7 @@ function RecentBlocksList({ blocks }: { blocks: BlockInfo[] }) {
 }
 
 /* ── Recent Transactions panel ───────────────────────────────────── */
-function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
+function RecentTransactionsList({ transfers }: { transfers: RecentTransfer[] }) {
   return (
     <div className="bg-awz-surface border border-awz-border rounded-xl overflow-hidden flex flex-col shadow-lg">
       {/* panel title */}
@@ -202,13 +189,13 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
         <RiExchangeLine size={22} className="text-awz-gold flex-shrink-0" />
         <div className="flex flex-col">
           <span className="text-sm font-mono font-semibold text-awz-text">Latest Transactions</span>
-          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">User-submitted extrinsics</span>
+          <span className="text-[10px] font-mono text-awz-muted/60 uppercase tracking-widest">RIZ transfers</span>
         </div>
       </div>
 
-      {txs.length === 0 ? (
+      {transfers.length === 0 ? (
         <div className="px-5 py-10 text-center text-awz-muted text-sm font-mono">
-          No user transactions yet — inherents excluded
+          No transfers recorded yet
         </div>
       ) : (
         <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
@@ -216,50 +203,56 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
           <thead>
             <tr className="bg-awz-bg/40">
               <th className="py-2 text-left w-[42px]" />
-              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[35%]">Hash / Call</th>
+              <th className="px-2 py-2 text-left text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[36%]">Tx Hash</th>
               <th className="px-2 py-2 text-center text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[18%]">Type</th>
               <th className="px-2 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium w-[16%]">Block</th>
               <th className="pl-6 pr-5 py-2 text-right text-xs font-mono uppercase tracking-widest text-awz-muted/70 font-medium">Age</th>
             </tr>
           </thead>
           <tbody>
-            {txs.map((tx, i) => (
-              <tr key={`${tx.blockNumber}-${tx.index}-${i}`} className="hover:bg-awz-gold/5 transition-colors">
+            {transfers.map((t, i) => {
+              // From/to/amount are only revealed on the tx detail page — the
+              // overview list is a public landing page and shouldn't expose
+              // wallet activity at a glance.
+              const target = t.extrinsicHash
+                ? `/tx/${t.blockNumber}?hash=${encodeURIComponent(t.extrinsicHash)}`
+                : `/block/${t.blockNumber}`
+              return (
+              <tr key={`${t.blockNumber}-${t.blockHash}-${i}`} className="hover:bg-awz-gold/5 transition-colors">
                 <td className="pl-5 pr-2 py-3">
-                  {tx.isSigned
-                    ? <TbArrowsExchange size={18} className="text-awz-gold" />
-                    : <TbBolt size={18} className="text-awz-muted/50" />
-                  }
+                  <TbArrowsExchange size={18} className="text-awz-gold" />
                 </td>
                 <td className="px-2 py-3 overflow-hidden">
                   <Link
-                    to={`/tx/${tx.blockNumber}/${tx.index}`}
+                    to={target}
                     className="font-mono text-sm text-awz-green hover:underline block truncate"
                   >
-                    {truncHash(tx.hash)}
+                    {t.extrinsicHash ? truncHash(t.extrinsicHash) : truncHash(t.blockHash)}
                   </Link>
-                  <span className="font-mono text-xs text-awz-muted block truncate">
-                    {tx.section}.{tx.method}
-                  </span>
                 </td>
                 <td className="px-2 py-3 text-center overflow-hidden">
-                  <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide ${typeColor(tx.type)}`}>
-                    {tx.type}
-                  </span>
+                  {/* The indexer's recent-transfers feed only ever contains
+                      Balances.Transfer events, so this is always "Transfer" —
+                      the column stays in place for when other event types
+                      are added to the feed. */}
+                  <TxTypeBadge type="Transfer" size="xs" />
                 </td>
                 <td className="px-2 py-3 text-right overflow-hidden">
                   <Link
-                    to={`/block/${tx.blockNumber}`}
+                    to={`/block/${t.blockNumber}`}
                     className="font-mono text-sm text-awz-gold hover:underline whitespace-nowrap"
                   >
-                    #{tx.blockNumber.toLocaleString()}
+                    #{t.blockNumber.toLocaleString()}
                   </Link>
                 </td>
                 <td className="pl-6 pr-5 py-3 text-right">
-                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">{timeAgo(tx.timestamp)}</span>
+                  <span className="font-mono text-sm text-awz-muted/60 whitespace-nowrap">
+                    {t.timestamp != null ? timeAgo(t.timestamp) : '—'}
+                  </span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
         </div>
@@ -271,8 +264,17 @@ function RecentTransactionsList({ txs }: { txs: TxInfo[] }) {
 /* ── Overview ────────────────────────────────────────────────────── */
 export function Overview() {
   const { data: stats } = useNetworkStats()
+  const { data: idxStats } = useIndexerStats()
+  const { data: accountCount } = useAccountCount()
   const { data: validatorCount } = useValidatorCount()
-  const { latestBlockNumber, tps, tpsHistory, blocks, txs } = useLiveChainData()
+  const { data: validatorStakeTotal } = useValidatorStakeTotal()
+  const { tps, tpsHistory, latestBlockNumber: rpcLatestBlockNumber } = useLiveChainData()
+  const { blocks: idxBlocks, latestBlockNumber: idxLatestBlockNumber } = useIndexerLiveBlocks()
+  const { data: recentTransfers } = useRecentTransfers(10)
+
+  // Indexer seeds instantly from REST; fall back to the RPC subscription's
+  // head if the indexer hasn't responded yet (e.g. briefly offline).
+  const latestBlockNumber = idxLatestBlockNumber || rpcLatestBlockNumber
 
   const [totalIssuance, setTotalIssuance] = useState<bigint | null>(null)
 
@@ -299,13 +301,22 @@ export function Overview() {
   const tpsStr          = latestBlockNumber > 0 ? tps.toFixed(2) : null
 
   const supplyStr      = totalIssuance !== null             ? formatRizAmount(totalIssuance)                  : '———'
-  const stakedStr      = stats?.total_staked          != null ? formatRizAmountStr(stats.total_staked)         : '———'
+  // Total Staked = developer stakes (AwarizonState::TotalStaked) + validator
+  // self-stakes + delegator stakes (AwarizonConsensus's two running totals) —
+  // total_staked alone only ever counted developer stakes.
+  const developerStaked = stats?.total_staked != null ? BigInt(stats.total_staked) : null
+  const totalStakedRiz = developerStaked !== null || validatorStakeTotal !== undefined
+    ? (developerStaked ?? 0n) + (validatorStakeTotal ?? 0n)
+    : null
+  const stakedStr      = totalStakedRiz !== null                             ? formatRizAmount(totalStakedRiz)  : '———'
   const epochStr       = stats?.current_epoch         != null ? stats.current_epoch.toLocaleString()           : '———'
   const validatorStr   = validatorCount               != null ? Number(validatorCount).toLocaleString()        : '———'
   const blockHeightStr = latestBlockNumber > 0                ? `#${latestBlockNumber.toLocaleString()}`       : '———'
-  const totalExtStr    = stats?.total_extrinsics      != null ? stats.total_extrinsics.toLocaleString()        : '———'
+  // Real transfer count from the indexer — chain RPC's total_extrinsics
+  // includes one Timestamp.set per block and vastly overcounts activity.
+  const totalTxStr     = idxStats?.totalTransfers      != null ? idxStats.totalTransfers.toLocaleString()      : '———'
   const deliveriesStr  = stats?.total_deliveries      != null ? stats.total_deliveries.toLocaleString()        : '———'
-  const walletsStr     = stats?.total_wallets         != null ? stats.total_wallets.toLocaleString()           : '———'
+  const walletsStr     = accountCount != null ? accountCount.toLocaleString() : (stats?.total_wallets != null ? stats.total_wallets.toLocaleString() : '———')
   const campaignsStr   = stats?.active_campaigns      != null ? stats.active_campaigns.toLocaleString()        : '———'
   const inboxStr       = stats?.inbox_reserve_balance != null ? formatRizAmountStr(stats.inbox_reserve_balance) : '———'
 
@@ -323,7 +334,7 @@ export function Overview() {
               {supplyStr}
               <span className="text-awz-muted text-[10px] font-normal ml-1">RIZ</span>
             </Row>
-            <Row icon={<Lock size={18} strokeWidth={2.5} />} label="Staked">
+            <Row icon={<Lock size={18} strokeWidth={2.5} />} label="Total Staked">
               {stakedStr}
               <span className="text-awz-muted text-[10px] font-normal ml-1">RIZ</span>
             </Row>
@@ -355,7 +366,7 @@ export function Overview() {
                 {blockHeightStr}
               </Cell>
               <Cell icon={<ArrowLeftRight size={14} strokeWidth={2.5} />} label="Total Txns">
-                {totalExtStr}
+                {totalTxStr}
               </Cell>
             </RowBg>
             <RowBg>
@@ -448,8 +459,14 @@ export function Overview() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <RecentBlocksList blocks={blocks} />
-          <RecentTransactionsList txs={txs} />
+          {/* Transactions read first on mobile (stacked); blocks stay on the
+              left once side-by-side at sm: and up. */}
+          <div className="order-2 sm:order-1">
+            <RecentBlocksList blocks={idxBlocks} />
+          </div>
+          <div className="order-1 sm:order-2">
+            <RecentTransactionsList transfers={recentTransfers ?? []} />
+          </div>
         </div>
       </div>
 

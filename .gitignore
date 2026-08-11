@@ -1,2 +1,13 @@
 target/
 .env
+
+# JS/TS build output and caches — none of this repo's packages commit
+# their compiled output (verified against git history before adding
+# this), so keep it that way across every workspace member, not just
+# the ones with their own local .gitignore.
+node_modules/
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo

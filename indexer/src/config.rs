@@ -19,6 +19,9 @@ pub struct Config {
 
     /// Maximum Postgres connections.
     pub db_pool_size: u32,
+
+    /// Redis connection string (caching + pub/sub notifications).
+    pub redis_url: String,
 }
 
 impl Config {
@@ -32,6 +35,7 @@ impl Config {
             batch_size: env::var("BATCH_SIZE").unwrap_or_else(|_| "10".to_string()).parse()?,
             batch_delay_ms: env::var("BATCH_DELAY_MS").unwrap_or_else(|_| "0".to_string()).parse()?,
             db_pool_size: env::var("DB_POOL_SIZE").unwrap_or_else(|_| "10".to_string()).parse()?,
+            redis_url: env::var("REDIS_URL").expect("REDIS_URL must be set"),
         })
     }
 }

@@ -18,7 +18,26 @@ import type {
   LinkedAddress,
   ChainType,
   LinkStatus,
+  DexAssetWire,
+  DexPoolResponse,
+  DexQuoteResponse,
+  DexTwapResponse,
 } from './types'
+
+// The `Json` RPC codec type has no array representation — its
+// constructor does `Object.entries(value || {})` and stores the
+// result in a Map, so a JSON array like `[a, b]` decodes to entries
+// `[['0', a], ['1', b]]`. `.toJSON()` then rebuilds that as an
+// *object* (`{"0": a, "1": b}`), never a real array — confirmed live
+// against dex_getAllPools, which returned `{"0": {...pool}}` for a
+// single pool. Any RPC method whose result is a top-level array (not
+// a single object) needs this instead of a bare `.toJSON()` — the
+// codec is a real Map underneath, so pulling `.values()` off it
+// sidesteps the lossy object rebuild entirely.
+function jsonArray<T>(result: any): T[] {
+  if (result.isEmpty) return []
+  return Array.from(result.values()) as T[]
+}
 
 // ----------------------------------------------------------------
 // Developer endpoints
@@ -29,8 +48,14 @@ export async function getDeveloperProfile(
   account: string
 ): Promise<DeveloperProfile | null> {
   const result = await (api.rpc as any).awarizon.getDeveloperProfile(account)
+  // The `Json` RPC codec type has no concept of null — its constructor
+  // does `Object.entries(value || {})`, so an RPC result of `null`
+  // (Option::None on the node side) decodes to an empty Map, and
+  // `.toJSON()` on that returns `{}`, not `null`. `{}` is truthy, so a
+  // plain `if (!json)` check here never fires for an unregistered
+  // account. `.isEmpty` reflects the real "zero entries" state.
+  if (result.isEmpty) return null
   const json = result.toJSON()
-  if (!json) return null
   return {
     ...json,
     staked_riz: BigInt(json.staked_riz ?? '0'),
@@ -43,7 +68,7 @@ export async function getDeveloperCampaigns(
   account: string
 ): Promise<string[]> {
   const result = await (api.rpc as any).awarizon.getDeveloperCampaigns(account)
-  return result.toJSON() as string[]
+  return jsonArray<string>(result)
 }
 
 export async function getDeveloperManifests(
@@ -51,7 +76,7 @@ export async function getDeveloperManifests(
   account: string
 ): Promise<string[]> {
   const result = await (api.rpc as any).awarizon.getDeveloperManifests(account)
-  return result.toJSON() as string[]
+  return jsonArray<string>(result)
 }
 
 // ----------------------------------------------------------------
@@ -63,8 +88,8 @@ export async function getCampaign(
   campaignId: string
 ): Promise<Campaign | null> {
   const result = await (api.rpc as any).awarizon.getCampaign(campaignId)
+  if (result.isEmpty) return null
   const json = result.toJSON()
-  if (!json) return null
   return {
     ...json,
     max_deliveries: BigInt(json.max_deliveries ?? '0'),
@@ -83,8 +108,8 @@ export async function getCampaignDeliveryStatus(
   campaignId: string
 ): Promise<CampaignDeliveryStatus | null> {
   const result = await (api.rpc as any).awarizon.getCampaignDeliveryStatus(campaignId)
+  if (result.isEmpty) return null
   const json = result.toJSON()
-  if (!json) return null
   return {
     current_deliveries: BigInt(json.current_deliveries ?? '0'),
     max_deliveries: BigInt(json.max_deliveries ?? '0'),
@@ -111,9 +136,8 @@ export async function getInboxRecord(
   recordId: string
 ): Promise<InboxRecord | null> {
   const result = await (api.rpc as any).awarizon.getInboxRecord(wallet, recordId)
-  const json = result.toJSON()
-  if (!json) return null
-  return json as InboxRecord
+  if (result.isEmpty) return null
+  return result.toJSON() as InboxRecord
 }
 
 // ----------------------------------------------------------------
@@ -188,7 +212,7 @@ export async function getRecentTransactions(
   api: ApiPromise
 ): Promise<TransactionSummary[]> {
   const result = await (api.rpc as any).awarizon.getRecentTransactions()
-  return (result.toJSON() as any[]).map((r: any) => ({
+  return jsonArray<any>(result).map((r: any) => ({
     block_number: Number(r.block_number ?? 0),
     extrinsic_index: Number(r.extrinsic_index ?? 0),
     success: Boolean(r.success),
@@ -200,7 +224,7 @@ export async function getBlockTransactions(
   blockNumber: number
 ): Promise<TransactionSummary[]> {
   const result = await (api.rpc as any).awarizon.getBlockTransactions(blockNumber)
-  return (result.toJSON() as any[]).map((r: any) => ({
+  return jsonArray<any>(result).map((r: any) => ({
     block_number: Number(r.block_number ?? 0),
     extrinsic_index: Number(r.extrinsic_index ?? 0),
     success: Boolean(r.success),
@@ -230,8 +254,8 @@ export async function getIdentity(
   account: string
 ): Promise<IdentityRecord | null> {
   const result = await (api.rpc as any).awarizon.getIdentity(account, null)
+  if (result.isEmpty) return null
   const json = result.toJSON()
-  if (!json) return null
   return {
     account: json.account,
     rizName: json.riz_name ?? null,
@@ -257,8 +281,8 @@ export async function lookupName(
   name: string
 ): Promise<NameLookup | null> {
   const result = await (api.rpc as any).awarizon.lookupName(name, null)
+  if (result.isEmpty) return null
   const json = result.toJSON()
-  if (!json) return null
   const identity = json.identity ? await getIdentity(api, json.account) : null
   return {
     rizName: json.riz_name as string,
@@ -293,4 +317,68 @@ export async function isNameAvailable(
 export async function getTotalIdentities(api: ApiPromise): Promise<number> {
   const result = await (api.rpc as any).awarizon.getTotalIdentities(null)
   return result.toNumber()
+}
+
+// ----------------------------------------------------------------
+// DEX endpoints — separate "dex" RPC namespace (see customTypes.ts)
+// ----------------------------------------------------------------
+
+// getPool/getQuote/getTwap all take a DexAssetWire ('native' — a bare
+// string — or { token: id }) as a 'Json'-typed param. @polkadot/api
+// encodes a Json param by running the raw JS value through the same
+// Json codec used to decode responses, and that codec's constructor
+// does `Object.entries(value || {})` — fine for the {token: id}
+// object case, but for the bare string 'native' it explodes into
+// per-character entries (confirmed live: `createType('Json',
+// 'native').toJSON()` -> `{"0":"n","1":"a",...}`), which the node
+// then rejects with "unknown variant `0`, expected `native` or
+// `token`". Routing these three through the raw provider instead
+// sends the plain JS value as-is (proper JSON.stringify, no codec
+// involved) and returns already-decoded plain JSON — sidesteps this
+// on both the request and response side.
+async function dexRpcSend<T>(api: ApiPromise, method: string, params: unknown[]): Promise<T> {
+  return (api as any)._rpcCore.provider.send(`dex_${method}`, params)
+}
+
+export async function getDexPool(
+  api: ApiPromise,
+  assetA: DexAssetWire,
+  assetB: DexAssetWire
+): Promise<DexPoolResponse | null> {
+  return dexRpcSend<DexPoolResponse | null>(api, 'getPool', [assetA, assetB])
+}
+
+export async function getDexQuote(
+  api: ApiPromise,
+  assetIn: DexAssetWire,
+  assetOut: DexAssetWire,
+  amountIn: string
+): Promise<DexQuoteResponse> {
+  return dexRpcSend<DexQuoteResponse>(api, 'getQuote', [assetIn, assetOut, amountIn])
+}
+
+export async function getDexTwap(
+  api: ApiPromise,
+  assetA: DexAssetWire,
+  assetB: DexAssetWire
+): Promise<DexTwapResponse | null> {
+  return dexRpcSend<DexTwapResponse | null>(api, 'getTwap', [assetA, assetB])
+}
+
+export async function getAllDexPools(
+  api: ApiPromise,
+  limit = 50
+): Promise<DexPoolResponse[]> {
+  const result = await (api.rpc as any).dex.getAllPools(limit)
+  return jsonArray<DexPoolResponse>(result)
+}
+
+export async function getDexFeeDestination(api: ApiPromise): Promise<'burn' | 'treasury'> {
+  const result = await (api.rpc as any).dex.getFeeDestination()
+  return result.toString().toLowerCase() === 'treasury' ? 'treasury' : 'burn'
+}
+
+export async function getDexTotalBurned(api: ApiPromise): Promise<string> {
+  const result = await (api.rpc as any).dex.getTotalBurned()
+  return result.toString()
 }

@@ -35,7 +35,7 @@ export default function ManageValidatorPage() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Connect your wallet</h2>
@@ -50,7 +50,7 @@ export default function ManageValidatorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-gray-400">Loading...</div>
       </div>
@@ -59,7 +59,7 @@ export default function ManageValidatorPage() {
 
   if (!validator) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">No validator found</h2>
@@ -77,7 +77,7 @@ export default function ManageValidatorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white py-24">
+    <main className="min-h-screen text-white py-24">
       <div className="max-w-lg mx-auto px-6">
         <Link href="/dashboard"
           className="text-sm text-gray-500 hover:text-white
@@ -89,7 +89,7 @@ export default function ManageValidatorPage() {
           Changes apply from the next epoch.
         </p>
 
-        <div className="bg-[#111118] border border-gray-800
+        <div className="bg-[#161029] border border-gray-800
           rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold">Commission</h2>

@@ -45,7 +45,7 @@ export default function EarningsPage() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Connect your wallet</h2>
@@ -59,7 +59,7 @@ export default function EarningsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white py-24">
+    <main className="min-h-screen text-white py-24">
       <div className="max-w-4xl mx-auto px-6">
         <Link href="/dashboard"
           className="text-sm text-gray-500 hover:text-white
@@ -72,7 +72,7 @@ export default function EarningsPage() {
           for network context.
         </p>
 
-        <div className="bg-[#111118] border border-yellow-400/30
+        <div className="bg-[#161029] border border-yellow-400/30
           rounded-xl p-6 mb-8">
           <p className="text-sm text-gray-400 mb-1">Pending reward (claimable)</p>
           <p className="text-3xl font-black text-yellow-400">
@@ -90,7 +90,7 @@ export default function EarningsPage() {
           )}
         </div>
 
-        <div className="bg-[#111118] border border-gray-800
+        <div className="bg-[#161029] border border-gray-800
           rounded-xl p-6">
           <h2 className="font-bold mb-1">Network staking pool per epoch</h2>
           <p className="text-xs text-gray-500 mb-4">

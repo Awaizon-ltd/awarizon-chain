@@ -15,7 +15,7 @@ interface TextareaProps extends BaseProps,
   multiline: true
 }
 
-const fieldClass = `w-full bg-[#0a0a0f] border border-gray-700
+const fieldClass = `w-full border border-gray-700
   rounded-lg px-4 py-3 text-white text-sm
   focus:border-yellow-400 focus:outline-none
   placeholder:text-gray-600`

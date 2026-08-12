@@ -14,7 +14,7 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <div className={`
-      bg-[#111118] rounded-xl p-5 border
+      bg-[#161029] rounded-xl p-5 border
       ${accent ? 'border-yellow-400/30' : 'border-gray-800'}
     `}>
       <div className="flex items-start justify-between mb-1">

@@ -14,7 +14,13 @@ export const MAX_COMMISSION = 20 // %
 export const DEFAULT_COMMISSION = 10 // % — set on register_validator
 
 export const MANAGED_SLOTS_TOTAL = 51
-export const MANAGED_YEARLY_FEE_ETH = 0.05
+// Launch pricing — MANAGED_YEARLY_FEE_ETH is the actual charge; List
+// is shown struck through next to it as the reference/bonus price.
+export const MANAGED_YEARLY_FEE_ETH_LIST = 0.5
+export const MANAGED_YEARLY_FEE_ETH = 0.1
+export const MANAGED_YEARLY_FEE_DISCOUNT_PCT = Math.round(
+  (1 - MANAGED_YEARLY_FEE_ETH / MANAGED_YEARLY_FEE_ETH_LIST) * 100
+)
 
 export const SPEC = {
   name: CHAIN_NAME,
@@ -25,9 +31,9 @@ export const SPEC = {
 
 export const NODE_REQUIREMENTS = {
   cpu: '4 cores',
-  ram: '8 GB',
+  ram: '16 GB',
   storage: '200 GB SSD',
-  network: '100 Mbps',
+  network: '500 Mbps',
   os: 'Ubuntu 22.04 LTS',
   bandwidth: '1 TB/month',
 }
@@ -55,6 +61,60 @@ export const REGIONS = [
   { code: 0x08, name: 'Southeast Asia' },
   { code: 0x09, name: 'Oceania' },
   { code: 0x0A, name: 'Central Asia' },
+]
+
+// Sibling apps in the same Awarizon workspace — real, live services, not
+// placeholders (see memory/project_awarizon_apps_map.md).
+export const ECOSYSTEM_APPS = [
+  { name: 'Explorer', url: EXPLORER_URL, desc: 'Blocks, extrinsics, accounts' },
+  { name: 'DEX', url: SPEC.dex, desc: 'RIZ / token AMM swaps' },
+  { name: 'Developer', url: 'https://developer.awarizon.com', desc: 'Build & distribute apps' },
+  { name: 'Faucet', url: 'https://faucet.awarizon.com', desc: 'Testnet RIZ' },
+  { name: 'RizArt', url: 'https://rizart.awarizon.com', desc: 'NFT marketplace' },
+]
+
+// Plain country names for the managed-apply form (just an applicant's
+// country of residence — no on-chain meaning, unlike COUNTRIES below).
+export const COUNTRY_NAMES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola',
+  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+  'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus',
+  'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+  'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria',
+  'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada',
+  'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China',
+  'Colombia', 'Comoros', 'Congo (DRC)', 'Congo (Republic)', 'Costa Rica',
+  "Côte d'Ivoire", 'Croatia', 'Cuba', 'Cyprus', 'Czechia',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador',
+  'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia',
+  'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France',
+  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana',
+  'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau',
+  'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland',
+  'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
+  'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait',
+  'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho',
+  'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali',
+  'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
+  'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro',
+  'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru',
+  'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger',
+  'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman',
+  'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea',
+  'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar', 'Romania', 'Russia', 'Rwanda', 'Samoa',
+  'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia',
+  'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+  'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan',
+  'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden',
+  'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania',
+  'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago',
+  'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda',
+  'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay',
+  'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen', 'Zambia', 'Zimbabwe',
 ]
 
 // Country codes are a much larger ISO-3166-numeric-style table on chain;

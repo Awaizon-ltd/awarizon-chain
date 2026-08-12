@@ -1,6 +1,19 @@
 'use client'
 import { useState } from 'react'
-import { MANAGED_YEARLY_FEE_ETH } from '../../../lib/constants'
+import emailjs from '@emailjs/browser'
+import {
+  MANAGED_YEARLY_FEE_ETH, MANAGED_YEARLY_FEE_ETH_LIST,
+  MANAGED_YEARLY_FEE_DISCOUNT_PCT, COUNTRY_NAMES,
+} from '../../../lib/constants'
+
+// Same pattern as developer/src/components/marketing/GrantForm.tsx —
+// EmailJS's public key is meant to be exposed client-side (EmailJS
+// enforces domain restriction + rate limiting on their end, not via
+// secrecy of these IDs).
+const SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID
+const TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_APPLY_TEMPLATE_ID
+const PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+const emailjsConfigured = Boolean(SERVICE_ID && TEMPLATE_ID && PUBLIC_KEY)
 
 export default function ApplyPage() {
   const [form, setForm] = useState({
@@ -20,6 +33,8 @@ export default function ApplyPage() {
     setSubmitting(true)
     setError('')
     try {
+      // Durable record — kept in Mongo regardless of whether the email
+      // below succeeds (see api/validator-application/route.ts).
       const res = await fetch('/api/validator-application', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,6 +44,30 @@ export default function ApplyPage() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Failed to submit application')
       }
+
+      // Operator notification — best-effort. A misconfigured/failed
+      // EmailJS send shouldn't block the applicant; the record is
+      // already in Mongo either way.
+      if (emailjsConfigured) {
+        try {
+          await emailjs.send(
+            SERVICE_ID!,
+            TEMPLATE_ID!,
+            {
+              from_name: form.name,
+              from_email: form.email,
+              wallet: form.wallet,
+              country: form.country,
+              experience: form.experience,
+              reason: form.reason,
+            },
+            { publicKey: PUBLIC_KEY! },
+          )
+        } catch (err: any) {
+          console.error('EmailJS notification failed:', err?.text ?? err?.message)
+        }
+      }
+
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message)
@@ -38,7 +77,7 @@ export default function ApplyPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-6">✅</div>
@@ -59,7 +98,7 @@ export default function ApplyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f]
+    <main className="min-h-screen
       text-white py-24">
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="text-4xl font-black mb-2">
@@ -75,27 +114,55 @@ export default function ApplyPage() {
         <div className="bg-yellow-400/10 border
           border-yellow-400/30 rounded-xl p-5 mb-8">
           <div className="flex justify-between
-            items-center">
+            items-start">
             <div>
-              <p className="font-bold">
-                Managed Validator Slot
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-bold">
+                  Managed Validator Slot
+                </p>
+                <span className="text-[10px] font-bold text-black
+                  bg-yellow-400 px-1.5 py-0.5 rounded-md
+                  flex-shrink-0">
+                  {MANAGED_YEARLY_FEE_DISCOUNT_PCT}% OFF
+                </span>
+              </div>
               <p className="text-sm text-gray-400">
                 Yearly subscription ·
                 Node operated by Awarizon team
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-black
-                text-yellow-400">
-                {MANAGED_YEARLY_FEE_ETH} ETH
-              </p>
+            <div className="text-right flex-shrink-0 pl-4">
+              <div className="flex items-baseline justify-end gap-2">
+                <p className="text-2xl font-black
+                  text-yellow-400">
+                  {MANAGED_YEARLY_FEE_ETH} ETH
+                </p>
+                <span className="text-sm text-gray-500 line-through">
+                  {MANAGED_YEARLY_FEE_ETH_LIST} ETH
+                </span>
+              </div>
               <p className="text-sm text-gray-400">
                 per year
               </p>
             </div>
           </div>
+          <p className="text-xs text-gray-500 mt-4 pt-4
+            border-t border-yellow-400/20">
+            {MANAGED_YEARLY_FEE_DISCOUNT_PCT}% discount available for
+            Awarizon Testnet validators only.
+          </p>
         </div>
+
+        {!emailjsConfigured && (
+          <div className="bg-yellow-400/5 border border-yellow-400/20
+            rounded-xl p-4 mb-6 text-xs text-gray-500 leading-relaxed">
+            Operator email notifications aren't configured yet — set{' '}
+            <code className="text-yellow-400">NEXT_PUBLIC_EMAILJS_SERVICE_ID</code>,{' '}
+            <code className="text-yellow-400">NEXT_PUBLIC_EMAILJS_APPLY_TEMPLATE_ID</code>, and{' '}
+            <code className="text-yellow-400">NEXT_PUBLIC_EMAILJS_PUBLIC_KEY</code>.
+            Applications still get saved either way.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}
           className="space-y-5">
@@ -111,7 +178,7 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({ ...f, name: e.target.value })
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white focus:border-yellow-400
                 focus:outline-none"
@@ -131,7 +198,7 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({ ...f, email: e.target.value })
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white focus:border-yellow-400
                 focus:outline-none"
@@ -155,7 +222,7 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({...f, wallet: e.target.value})
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white font-mono text-sm
                 focus:border-yellow-400 focus:outline-none"
@@ -168,19 +235,22 @@ export default function ApplyPage() {
               font-medium text-gray-300 mb-1.5">
               Country
             </label>
-            <input
-              type="text"
+            <select
               required
               value={form.country}
               onChange={e => setForm(
                 f => ({...f, country: e.target.value})
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white focus:border-yellow-400
                 focus:outline-none"
-              placeholder="Nigeria"
-            />
+            >
+              <option value="">Select country</option>
+              {COUNTRY_NAMES.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -194,7 +264,7 @@ export default function ApplyPage() {
                 f => ({...f,
                   experience: e.target.value})
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white focus:border-yellow-400
                 focus:outline-none"
@@ -223,7 +293,7 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({...f, reason: e.target.value})
               )}
-              className="w-full bg-[#111118] border
+              className="w-full bg-[#161029] border
                 border-gray-700 rounded-xl px-4 py-3
                 text-white focus:border-yellow-400
                 focus:outline-none resize-none"

@@ -1,14 +1,22 @@
 import Link from 'next/link'
 import LeaderboardPreview from '../components/validator/LeaderboardPreview'
+import NetworkBackground from '../components/NetworkBackground'
+import NetworkSnapshot from '../components/validator/NetworkSnapshot'
+import RegionDistribution from '../components/validator/RegionDistribution'
+import NetworkStatGrid from '../components/validator/NetworkStatGrid'
+import PerformanceSummary from '../components/validator/PerformanceSummary'
+import EcosystemGrid from '../components/EcosystemGrid'
 import { MIN_STAKE, MANAGED_SLOTS_TOTAL } from '../lib/constants'
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white">
+    <main className="min-h-screen text-white">
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6
-        pt-24 pb-16 text-center">
+      <section className="relative overflow-hidden">
+        <NetworkBackground />
+        <div className="relative z-10 max-w-6xl mx-auto px-6
+          pt-24 pb-16 text-center">
         <div className="inline-block bg-yellow-400/10
           border border-yellow-400/20 rounded-full
           px-4 py-1.5 text-yellow-400 text-sm
@@ -20,7 +28,9 @@ export default function HomePage() {
           font-black mb-6 leading-tight">
           Secure the network.
           <br />
-          <span className="text-yellow-400">
+          <span className="text-yellow-400 underline
+            decoration-yellow-400/40 decoration-4
+            underline-offset-8">
             Earn RIZ rewards.
           </span>
         </h1>
@@ -65,7 +75,7 @@ export default function HomePage() {
           gap-6 max-w-4xl mx-auto">
 
           {/* Managed */}
-          <div className="bg-[#111118] border
+          <div className="bg-[#161029] border
             border-yellow-400/30 rounded-2xl p-8
             text-left hover:border-yellow-400/60
             transition-colors">
@@ -110,7 +120,7 @@ export default function HomePage() {
           </div>
 
           {/* Self-hosted */}
-          <div className="bg-[#111118] border
+          <div className="bg-[#161029] border
             border-gray-700 rounded-2xl p-8
             text-left hover:border-gray-500
             transition-colors">
@@ -154,6 +164,30 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+        </div>
+      </section>
+
+      {/* Network snapshot — same slot a metrics site gives its live
+          confirmation-time panel, directly under the hero */}
+      <section className="max-w-6xl mx-auto px-6 py-16 border-t border-gray-800">
+        <NetworkSnapshot />
+      </section>
+
+      {/* Region distribution — real per-region validator counts,
+          the honest equivalent of a world map without invented pins */}
+      <section className="max-w-6xl mx-auto px-6 pb-16">
+        <RegionDistribution />
+      </section>
+
+      {/* Network stat grid */}
+      <section className="max-w-6xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl font-bold mb-6">Network at a glance</h2>
+        <NetworkStatGrid />
+      </section>
+
+      {/* Network health */}
+      <section className="max-w-6xl mx-auto px-6 pb-16">
+        <PerformanceSummary />
       </section>
 
       {/* How it works */}
@@ -188,7 +222,7 @@ export default function HomePage() {
             },
           ].map(item => (
             <div key={item.step}
-              className="bg-[#111118] rounded-xl
+              className="bg-[#161029] rounded-xl
               p-6 border border-gray-800">
               <div className="text-yellow-400
                 font-mono text-sm mb-3">
@@ -203,6 +237,12 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Ecosystem */}
+      <section className="max-w-6xl mx-auto
+        px-6 py-16 border-t border-gray-800">
+        <EcosystemGrid />
       </section>
 
       {/* Leaderboard preview */}

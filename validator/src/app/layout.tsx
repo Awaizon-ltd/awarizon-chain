@@ -21,6 +21,10 @@ export const metadata: Metadata = {
     'Awarizon', 'Awarizon Validator', 'blockchain validator',
     'Substrate', 'Polkadot SDK', 'staking', 'RIZ',
   ],
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   alternates: {
     canonical: SITE_URL,
   },
@@ -30,11 +34,20 @@ export const metadata: Metadata = {
     siteName: title,
     title,
     description,
+    images: [
+      {
+        url: '/logo.png',
+        width: 1024,
+        height: 1024,
+        alt: title,
+      },
+    ],
   },
   twitter: {
     card: 'summary',
     title,
     description,
+    images: ['/logo.png'],
   },
   robots: {
     index: true,
@@ -45,7 +58,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0a0a0f',
+  themeColor: '#0d0a1f',
 }
 
 export default function RootLayout({

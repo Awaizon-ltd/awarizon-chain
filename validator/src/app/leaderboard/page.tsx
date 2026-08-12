@@ -34,7 +34,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f]
+    <main className="min-h-screen
       text-white py-24">
       <div className="max-w-6xl mx-auto px-6">
         <h1 className="text-4xl font-black mb-2">
@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
             Loading validators...
           </div>
         ) : (
-          <div className="bg-[#111118] border
+          <div className="bg-[#161029] border
             border-gray-800 rounded-2xl
             overflow-hidden">
             {/* Table header */}

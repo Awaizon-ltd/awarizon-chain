@@ -47,7 +47,7 @@ export default function ActivatePage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]
+      <div className="min-h-screen
         flex items-center justify-center">
         <div className="text-center max-w-md px-6">
           <div className="text-6xl mb-6">🎉</div>
@@ -79,7 +79,7 @@ export default function ActivatePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f]
+    <main className="min-h-screen
       text-white py-24">
       <div className="max-w-lg mx-auto px-6">
         <h1 className="text-4xl font-black mb-2">
@@ -95,7 +95,7 @@ export default function ActivatePage() {
         <div className="space-y-6">
 
           {/* Step 1 — Activation code */}
-          <div className={`bg-[#111118] border
+          <div className={`bg-[#161029] border
             rounded-xl p-6 transition-colors
             ${step >= 1
               ? 'border-yellow-400/40'
@@ -119,7 +119,7 @@ export default function ActivatePage() {
               value={code}
               onChange={e => setCode(e.target.value)}
               placeholder="AWZ-XXXX-XXXX-XXXX"
-              className="w-full bg-[#0a0a0f] border
+              className="w-full border
                 border-gray-700 rounded-lg px-4 py-3
                 text-white font-mono tracking-wider
                 focus:border-yellow-400
@@ -128,7 +128,7 @@ export default function ActivatePage() {
           </div>
 
           {/* Step 2 — Connect wallet */}
-          <div className={`bg-[#111118] border
+          <div className={`bg-[#161029] border
             rounded-xl p-6 transition-colors
             ${step >= 2
               ? 'border-yellow-400/40'
@@ -158,7 +158,7 @@ export default function ActivatePage() {
           </div>
 
           {/* Step 3 — Activate */}
-          <div className={`bg-[#111118] border
+          <div className={`bg-[#161029] border
             rounded-xl p-6 transition-colors
             ${step >= 3
               ? 'border-yellow-400/40'

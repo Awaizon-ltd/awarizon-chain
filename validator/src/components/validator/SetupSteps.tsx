@@ -12,7 +12,7 @@ export default function SetupSteps({ steps }: { steps: SetupStep[] }) {
     <div className="space-y-4">
       {steps.map((step, i) => (
         <div key={i}
-          className="bg-[#111118] border border-gray-800 rounded-xl p-6">
+          className="bg-[#161029] border border-gray-800 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-7 h-7 bg-yellow-400/10 text-yellow-400
               rounded-full flex items-center justify-center
@@ -22,7 +22,7 @@ export default function SetupSteps({ steps }: { steps: SetupStep[] }) {
             <h3 className="font-bold">{step.title}</h3>
           </div>
           {step.code && (
-            <pre className="bg-[#0a0a0f] rounded-lg p-4 text-sm
+            <pre className="bg-[#0d0a1f] rounded-lg p-4 text-sm
               font-mono text-green-400 overflow-x-auto whitespace-pre-wrap">
               {step.code}
             </pre>

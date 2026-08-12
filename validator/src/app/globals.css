@@ -10,7 +10,16 @@
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #0a0a0f;
+  background-color: #0d0a1f;
+  /* Soft violet glow fading into the base navy — same depth cue as
+     the hero backdrop, applied site-wide so every page (not just the
+     landing hero) reads as part of one dark navy/violet system rather
+     than flat black. */
+  background-image:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(255, 215, 0, 0.05), transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #ffffff;
   min-height: 100vh;
 }
@@ -20,9 +29,9 @@ pre, code {
 }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #111118; }
+::-webkit-scrollbar-track { background: #161029; }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #2f2850;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover { background: #FFD700; }

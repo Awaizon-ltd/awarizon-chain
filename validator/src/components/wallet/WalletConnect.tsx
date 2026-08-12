@@ -52,7 +52,7 @@ function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void })
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div
-        className="relative bg-[#111118] border border-gray-800
+        className="relative bg-[#161029] border border-gray-800
           rounded-2xl w-full max-w-sm p-6 z-10"
         onClick={e => e.stopPropagation()}
       >
@@ -142,7 +142,7 @@ export default function WalletConnect() {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 bg-[#111118] border border-gray-800
+        className="flex items-center gap-2 bg-[#161029] border border-gray-800
           hover:border-yellow-400/30 rounded-xl px-3 py-2 transition-colors"
       >
         <div className="w-6 h-6 rounded-full bg-yellow-400
@@ -164,7 +164,7 @@ export default function WalletConnect() {
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 top-12 bg-[#111118] border
+        <div className="absolute right-0 top-12 bg-[#161029] border
           border-gray-800 rounded-xl p-2 w-48 z-50">
           <p className="px-3 py-2 text-xs text-gray-500 font-mono">
             {truncate(address)}

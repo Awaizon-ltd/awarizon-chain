@@ -5,7 +5,7 @@ const columns = [
   {
     heading: 'Validators',
     links: [
-      { label: 'Leaderboard', href: '/leaderboard' },
+      { label: 'Validators', href: '/leaderboard' },
       { label: 'Managed Node', href: '/managed' },
       { label: 'Self-Hosted Node', href: '/self-hosted' },
       { label: 'Dashboard', href: '/dashboard' },
@@ -29,11 +29,8 @@ export function Footer() {
           justify-between gap-10">
           <div className="max-w-xs">
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-yellow-400
-                rounded-lg flex items-center justify-center
-                font-black text-black text-sm">
-                A
-              </div>
+              <img src="/logo.png" alt="Awarizon"
+                className="w-8 h-8 flex-shrink-0" />
               <span className="font-bold">
                 Awarizon
                 <span className="text-yellow-400"> Validators</span>

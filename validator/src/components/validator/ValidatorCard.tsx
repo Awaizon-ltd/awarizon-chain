@@ -20,7 +20,7 @@ export default function ValidatorCard({ validator: v, rank }: ValidatorCardProps
     <Link
       href={`/leaderboard#${v.address}`}
       className="flex items-center justify-between gap-4
-        bg-[#111118] border border-gray-800 rounded-xl px-5 py-4
+        bg-[#161029] border border-gray-800 rounded-xl px-5 py-4
         hover:border-yellow-400/30 transition-colors"
     >
       <div className="flex items-center gap-4 min-w-0">

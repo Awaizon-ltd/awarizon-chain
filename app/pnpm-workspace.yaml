@@ -1,4 +1,0 @@
-minimumReleaseAgeExclude:
-  - '@awarizon/core@2.0.0'
-  - '@awarizon/react@2.0.0'
-  - '@awarizon/sdk@2.0.0'

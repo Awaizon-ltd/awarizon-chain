@@ -11,3 +11,4 @@ build/
 .next/
 out/
 *.tsbuildinfo
+.github/workflows/

@@ -2,33 +2,24 @@
 
 The official repository for the Awarizon blockchain — a sovereign Layer 1 blockchain with a native app distribution protocol built directly into the runtime.
 
-## Overview
-
-Awarizon enables developers to register apps and deliver them directly to matching wallets via on-chain targeting. Users receive apps in their inbox, engage, and earn RIZ tokens automatically.
-
 ## Network
 
 | | |
 |---|---|
-| **Network** | Awarizon Testnet |
+| **Network** | Awarizon Public Testnet |
 | **Token** | RIZ |
 | **RPC** | wss://rpc.awarizon.com |
 | **Explorer** | https://rizscan.awarizon.com |
-| **Chain ID** | public-testnet |
 | **Block Time** | 3 seconds |
+| **Bootnode** | `/ip4/31.97.58.198/tcp/30333/p2p/12D3KooWHQUu3gnFJwvdVYNUpF8kyRSoHsxhhXj8ExjnciVtHWf4` |
 
-## Quick Start — Run a Node
+## Quick Start
 
-### Download binary
+### Download
 
 ```bash
 wget https://github.com/Awaizon-ltd/awarizon-chain/releases/latest/download/awarizon-node
 chmod +x awarizon-node
-```
-
-### Download chain spec
-
-```bash
 wget https://github.com/Awaizon-ltd/awarizon-chain/releases/latest/download/public-testnet.json
 ```
 
@@ -57,24 +48,12 @@ wget https://github.com/Awaizon-ltd/awarizon-chain/releases/latest/download/publ
   --port 30333
 ```
 
-## Pallets
+## Validator Program
 
-| Pallet | Description |
-|---|---|
-| `pallet-awarizon-state` | App registration, campaigns, inbox delivery |
-| `pallet-awarizon-consensus` | Validator registration, staking, epoch rewards |
-| `pallet-awarizon-dex` | On-chain AMM DEX for RIZ and native tokens |
-| `pallet-awarizon-identity` | On-chain .riz name system |
-| `pallet-awarizon-links` | Cross-chain address linking |
-| `pallet-awarizon-types` | Shared types across pallets |
+Run a validator and earn RIZ epoch rewards.
 
-## SDK
-
-```bash
-npm install awarizon.js
-npm install @awarizon/sdk
-npm install @awarizon/app
-```
+- **Managed** — we run everything, you earn rewards → [validators.awarizon.com](https://validators.awarizon.com)
+- **Self-hosted** — full control, free forever → follow setup guide above
 
 ## Ecosystem
 
@@ -86,13 +65,6 @@ npm install @awarizon/app
 | **Validator Portal** | https://validators.awarizon.com |
 | **Faucet** | https://faucet.awarizon.com |
 | **Docs** | https://wiki.awarizon.com |
-
-## Validator Program
-
-Run a validator and earn RIZ epoch rewards.
-
-- **Managed** — we run everything, you earn rewards → [validators.awarizon.com](https://validators.awarizon.com)
-- **Self-hosted** — full control, free forever → see setup guide above
 
 ## License
 

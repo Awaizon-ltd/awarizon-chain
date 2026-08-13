@@ -72,7 +72,7 @@ export default function EarningsPage() {
           for network context.
         </p>
 
-        <div className="bg-[#161029] border border-yellow-400/30
+        <div className="bg-[#111118] border border-yellow-400/30
           rounded-xl p-6 mb-8">
           <p className="text-sm text-gray-400 mb-1">Pending reward (claimable)</p>
           <p className="text-3xl font-black text-yellow-400">
@@ -90,7 +90,7 @@ export default function EarningsPage() {
           )}
         </div>
 
-        <div className="bg-[#161029] border border-gray-800
+        <div className="bg-[#111118] border border-gray-800
           rounded-xl p-6">
           <h2 className="font-bold mb-1">Network staking pool per epoch</h2>
           <p className="text-xs text-gray-500 mb-4">

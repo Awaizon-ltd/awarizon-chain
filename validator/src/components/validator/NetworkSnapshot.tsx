@@ -32,7 +32,7 @@ export default function NetworkSnapshot() {
   ]
 
   return (
-    <div className="bg-[#161029] border border-gray-800
+    <div className="bg-[#111118] border border-gray-800
       rounded-2xl p-8 text-center">
       <h2 className="text-2xl font-bold mb-2">Network Snapshot</h2>
       <a href={EXPLORER_URL} target="_blank" rel="noopener noreferrer"

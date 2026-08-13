@@ -75,7 +75,7 @@ export default function RegisterValidatorPage() {
 
         <div className="space-y-6">
           {/* Wallet */}
-          <div className="bg-[#161029] border border-gray-800
+          <div className="bg-[#111118] border border-gray-800
             rounded-xl p-6">
             <h2 className="font-bold mb-4">Validator wallet</h2>
             {connected && address ? (
@@ -92,7 +92,7 @@ export default function RegisterValidatorPage() {
           </div>
 
           {/* Stake */}
-          <div className="bg-[#161029] border border-gray-800
+          <div className="bg-[#111118] border border-gray-800
             rounded-xl p-6">
             <h2 className="font-bold mb-4">Self-stake</h2>
             <input
@@ -100,8 +100,8 @@ export default function RegisterValidatorPage() {
               min={MIN_STAKE}
               value={selfStake}
               onChange={e => setSelfStake(e.target.value)}
-              className="w-full border border-gray-700
-                rounded-lg px-4 py-3 text-white font-mono
+              className="w-full bg-[#0a0a0f] border border-gray-700
+                rounded-lg px-4 py-3 text-white text-sm font-mono
                 focus:border-yellow-400 focus:outline-none"
             />
             <p className={`text-xs mt-2 ${stakeValid ? 'text-gray-500' : 'text-red-400'}`}>
@@ -110,7 +110,7 @@ export default function RegisterValidatorPage() {
           </div>
 
           {/* Region / Country */}
-          <div className="bg-[#161029] border border-gray-800
+          <div className="bg-[#111118] border border-gray-800
             rounded-xl p-6 grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium
@@ -118,7 +118,7 @@ export default function RegisterValidatorPage() {
               <select
                 value={regionCode}
                 onChange={e => setRegionCode(Number(e.target.value))}
-                className="w-full border border-gray-700
+                className="w-full bg-[#0a0a0f] border border-gray-700
                   rounded-lg px-3 py-2.5 text-sm text-white
                   focus:border-yellow-400 focus:outline-none"
               >
@@ -133,7 +133,7 @@ export default function RegisterValidatorPage() {
               <select
                 value={countryCode}
                 onChange={e => setCountryCode(Number(e.target.value))}
-                className="w-full border border-gray-700
+                className="w-full bg-[#0a0a0f] border border-gray-700
                   rounded-lg px-3 py-2.5 text-sm text-white
                   focus:border-yellow-400 focus:outline-none"
               >

@@ -45,22 +45,22 @@ export default function RewardsChart({ history, compact }: RewardsChartProps) {
         </defs>
         {!compact && (
           <>
-            <CartesianGrid stroke="#2f2850" vertical={false} />
+            <CartesianGrid stroke="#333333" vertical={false} />
             <XAxis
               dataKey="epoch"
-              tick={{ fill: '#847ba3', fontSize: 12 }}
-              axisLine={{ stroke: '#2f2850' }}
+              tick={{ fill: '#9c9c9c', fontSize: 12 }}
+              axisLine={{ stroke: '#333333' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: '#847ba3', fontSize: 12 }}
+              tick={{ fill: '#9c9c9c', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               width={48}
             />
             <Tooltip
               contentStyle={{
-                background: '#161029', border: '1px solid #2f2850',
+                background: '#111118', border: '1px solid #333333',
                 borderRadius: 8, fontSize: 12,
               }}
               labelFormatter={(epoch) => `Epoch ${epoch}`}

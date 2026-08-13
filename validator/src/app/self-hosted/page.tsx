@@ -75,7 +75,7 @@ export default function SelfHostedPage() {
             {Object.entries(NODE_REQUIREMENTS)
               .map(([key, val]) => (
               <div key={key}
-                className="bg-[#161029] border
+                className="bg-[#111118] border
                 border-gray-800 rounded-xl p-4">
                 <p className="text-xs text-gray-500
                   uppercase tracking-wider mb-1">
@@ -101,7 +101,7 @@ export default function SelfHostedPage() {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`bg-[#161029] border
+                className={`bg-[#111118] border
                   rounded-xl p-4 flex items-center
                   justify-between hover:border-gray-600
                   transition-colors

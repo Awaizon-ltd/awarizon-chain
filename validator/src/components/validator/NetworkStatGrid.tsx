@@ -12,7 +12,7 @@ function StatBlock({ title, lines, children }: {
   children?: React.ReactNode
 }) {
   return (
-    <div className="bg-[#161029] border border-gray-800 rounded-xl p-5">
+    <div className="bg-[#111118] border border-gray-800 rounded-xl p-5">
       <h3 className="font-bold mb-3">{title}</h3>
       {lines?.map(l => (
         <div key={l.label} className="flex justify-between items-baseline mb-1.5 last:mb-0">

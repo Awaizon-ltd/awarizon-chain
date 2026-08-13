@@ -24,6 +24,7 @@ export default function ApplyPage() {
     experience: '',
     reason: '',
   })
+  const [agreedToPay, setAgreedToPay] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -84,13 +85,17 @@ export default function ApplyPage() {
           <h1 className="text-3xl font-bold mb-4">
             Application received
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-400 mb-4">
             We will review your application and
-            send your activation code to{' '}
+            send payment + activation instructions to{' '}
             <strong className="text-white">
               {form.email}
             </strong>{' '}
             within 24-48 hours.
+          </p>
+          <p className="text-sm text-yellow-400">
+            Reminder: activating a managed slot requires
+            payment of {MANAGED_YEARLY_FEE_ETH} ETH/year.
           </p>
         </div>
       </div>
@@ -105,9 +110,14 @@ export default function ApplyPage() {
           Apply for a managed validator slot
         </h1>
         <p className="text-gray-400 mb-8">
-          Fill in your details. We will review
-          and email you an activation code within
-          24-48 hours.
+          Fill in your details. This is a paid service —
+          managed slots require{' '}
+          <strong className="text-yellow-400">
+            {MANAGED_YEARLY_FEE_ETH} ETH/year
+          </strong>{' '}
+          — it is not free. We will review your application
+          and email you payment + activation instructions
+          within 24-48 hours.
         </p>
 
         {/* Pricing box */}
@@ -151,6 +161,10 @@ export default function ApplyPage() {
             {MANAGED_YEARLY_FEE_DISCOUNT_PCT}% discount available for
             Awarizon Testnet validators only.
           </p>
+          <p className="text-xs font-semibold text-yellow-400 mt-3">
+            ⚠ Payment of {MANAGED_YEARLY_FEE_ETH} ETH/year is required
+            to activate — this service is not free.
+          </p>
         </div>
 
         {!emailjsConfigured && (
@@ -178,9 +192,9 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({ ...f, name: e.target.value })
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
-                text-white focus:border-yellow-400
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
+                text-white text-sm focus:border-yellow-400
                 focus:outline-none"
               placeholder="John Smith"
             />
@@ -198,9 +212,9 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({ ...f, email: e.target.value })
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
-                text-white focus:border-yellow-400
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
+                text-white text-sm focus:border-yellow-400
                 focus:outline-none"
               placeholder="john@company.com"
             />
@@ -222,8 +236,8 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({...f, wallet: e.target.value})
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
                 text-white font-mono text-sm
                 focus:border-yellow-400 focus:outline-none"
               placeholder="5Grwva...or 0x..."
@@ -241,9 +255,9 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({...f, country: e.target.value})
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
-                text-white focus:border-yellow-400
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
+                text-white text-sm focus:border-yellow-400
                 focus:outline-none"
             >
               <option value="">Select country</option>
@@ -264,9 +278,9 @@ export default function ApplyPage() {
                 f => ({...f,
                   experience: e.target.value})
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
-                text-white focus:border-yellow-400
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
+                text-white text-sm focus:border-yellow-400
                 focus:outline-none"
             >
               <option value="">Select level</option>
@@ -293,14 +307,36 @@ export default function ApplyPage() {
               onChange={e => setForm(
                 f => ({...f, reason: e.target.value})
               )}
-              className="w-full bg-[#161029] border
-                border-gray-700 rounded-xl px-4 py-3
-                text-white focus:border-yellow-400
+              className="w-full bg-[#111118] border
+                border-gray-700 rounded-lg px-4 py-3
+                text-white text-sm focus:border-yellow-400
                 focus:outline-none resize-none"
               placeholder="Tell us about your
                 interest in Awarizon..."
             />
           </div>
+
+          <label className="flex items-start gap-3
+            bg-[#111118] border border-gray-700
+            rounded-lg px-4 py-3 cursor-pointer">
+            <input
+              type="checkbox"
+              required
+              checked={agreedToPay}
+              onChange={e => setAgreedToPay(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-yellow-400
+                flex-shrink-0"
+            />
+            <span className="text-sm text-gray-300">
+              I understand this is a{' '}
+              <strong className="text-white">paid</strong>{' '}
+              managed service and I will need to pay{' '}
+              <strong className="text-yellow-400">
+                {MANAGED_YEARLY_FEE_ETH} ETH/year
+              </strong>{' '}
+              to activate my slot — it is not free.
+            </span>
+          </label>
 
           {error && (
             <div className="bg-red-500/10 border
@@ -312,7 +348,7 @@ export default function ApplyPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !agreedToPay}
             className="w-full bg-yellow-400
               text-black font-bold py-4 rounded-xl
               hover:bg-yellow-300 disabled:opacity-50
@@ -320,7 +356,7 @@ export default function ApplyPage() {
           >
             {submitting
               ? 'Submitting...'
-              : 'Submit Application'}
+              : `Submit Application — ${MANAGED_YEARLY_FEE_ETH} ETH/year`}
           </button>
         </form>
       </div>

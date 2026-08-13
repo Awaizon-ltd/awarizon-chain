@@ -89,7 +89,7 @@ export default function ManageValidatorPage() {
           Changes apply from the next epoch.
         </p>
 
-        <div className="bg-[#161029] border border-gray-800
+        <div className="bg-[#111118] border border-gray-800
           rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold">Commission</h2>

@@ -13,6 +13,21 @@ export const MIN_STAKE = 100_000 // RIZ
 export const MAX_COMMISSION = 20 // %
 export const DEFAULT_COMMISSION = 10 // % — set on register_validator
 
+// Reward-emission economics — pallets/awarizon-types/src/constants.rs.
+// EPOCH_LENGTH_BLOCKS (28,800) * BLOCK_TIME_SECONDS (3) = 86,400s = exactly
+// 1 day, so "yield reserve daily emission" really is per-epoch.
+export const YIELD_RESERVE_DAILY_EMISSION = 15_000 // RIZ/epoch (1 epoch = 1 day)
+export const YIELD_RESERVE_TOTAL = 250_000_000 // RIZ
+export const EPOCH_LENGTH_DAYS = 1
+export const FEE_SPLIT_STAKING_PCT = 60 // % of each epoch's fees+yield pool
+export const FEE_SPLIT_INBOX_PCT = 20
+export const FEE_SPLIT_BURN_PCT = 20
+
+// Mainnet launch commitment — not an on-chain constant (mainnet doesn't
+// exist yet, this repo only ever talks to Awarizon Testnet), this is a
+// stated program to display on /academy.
+export const GENESIS_VALIDATOR_BONUS_PCT = 2 // % of total RIZ supply
+
 export const MANAGED_SLOTS_TOTAL = 51
 // Launch pricing — MANAGED_YEARLY_FEE_ETH is the actual charge; List
 // is shown struck through next to it as the reference/bonus price.

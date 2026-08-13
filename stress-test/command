@@ -6,8 +6,8 @@ import fs from 'fs/promises'
 
 const ENDPOINT = process.env.AWARIZON_ENDPOINT ?? 'ws://127.0.0.1:9944'
 const TX_COUNT = parseInt(process.argv[2] ?? '10000')
-const BATCH_SIZE = parseInt(process.env.BATCH_SIZE ?? '1000')
-const BATCH_DELAY = parseInt(process.env.BATCH_DELAY ?? '10')
+const BATCH_SIZE = parseInt(process.env.BATCH_SIZE ?? '800')
+const BATCH_DELAY = parseInt(process.env.BATCH_DELAY ?? '100')
 
 interface Wallet {
   address: string

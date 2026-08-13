@@ -95,7 +95,7 @@ export default function ManagedPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {included.map(item => (
               <div key={item.title}
-                className="bg-[#161029] border
+                className="bg-[#111118] border
                 border-gray-800 rounded-xl p-5">
                 <h3 className="font-bold mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-400">{item.desc}</p>
@@ -129,7 +129,7 @@ export default function ManagedPage() {
               },
             ].map((step, i) => (
               <div key={step.title}
-                className="bg-[#161029] border
+                className="bg-[#111118] border
                 border-gray-800 rounded-xl p-5
                 flex items-start gap-4">
                 <div className="w-7 h-7 bg-yellow-400/10

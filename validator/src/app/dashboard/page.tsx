@@ -172,7 +172,7 @@ export default function DashboardPage() {
             },
           ].map(stat => (
             <div key={stat.label}
-              className={`bg-[#161029] rounded-xl
+              className={`bg-[#111118] rounded-xl
               p-5 border
               ${stat.highlight
                 ? 'border-yellow-400/30'
@@ -200,7 +200,7 @@ export default function DashboardPage() {
         {/* Performance */}
         <div className="grid md:grid-cols-2
           gap-6 mb-8">
-          <div className="bg-[#161029] border
+          <div className="bg-[#111118] border
             border-gray-800 rounded-xl p-6">
             <h2 className="font-bold mb-5">
               Performance
@@ -211,7 +211,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Reward destination */}
-          <div className="bg-[#161029] border
+          <div className="bg-[#111118] border
             border-gray-800 rounded-xl p-6">
             <h2 className="font-bold mb-5">
               Reward destination
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                   value={destInput}
                   onChange={e => setDestInput(e.target.value)}
                   placeholder="5Grwva... or 0x..."
-                  className="w-full
+                  className="w-full bg-[#0a0a0f]
                     border border-gray-700 rounded-lg
                     px-3 py-2.5 text-sm font-mono
                     text-white focus:border-yellow-400
@@ -279,7 +279,7 @@ export default function DashboardPage() {
         )}
 
         {/* Actions */}
-        <div className="bg-[#161029] border
+        <div className="bg-[#111118] border
           border-gray-800 rounded-xl p-6">
           <h2 className="font-bold mb-5">Actions</h2>
           <div className="flex flex-wrap gap-3">

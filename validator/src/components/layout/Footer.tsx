@@ -5,6 +5,7 @@ const columns = [
   {
     heading: 'Validators',
     links: [
+      { label: 'Get Started', href: '/get-started' },
       { label: 'Validators', href: '/leaderboard' },
       { label: 'Managed Node', href: '/managed' },
       { label: 'Self-Hosted Node', href: '/self-hosted' },

@@ -51,75 +51,82 @@ export default function LeaderboardPage() {
             Loading validators...
           </div>
         ) : (
-          <div className="bg-[#161029] border
+          <div className="bg-[#111118] border
             border-gray-800 rounded-2xl
             overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-6
-              px-6 py-3 border-b border-gray-800
-              text-xs text-gray-500
-              uppercase tracking-wider">
-              <span>Rank</span>
-              <span className="col-span-2">
-                Validator
-              </span>
-              <span>Uptime</span>
-              <span>Commission</span>
-              <span>Total Stake</span>
-            </div>
-
-            {/* Rows */}
-            {validators.map((v, i) => {
-              const totalStake = parseFloat(
-                v.selfStake.replace(/,/g, '')
-              ) + parseFloat(
-                v.delegatedStake.replace(/,/g, '')
-              )
-              return (
-                <div key={v.address} id={v.address}
-                  className="grid grid-cols-6
-                  px-6 py-4 border-b border-gray-800
-                  last:border-0 hover:bg-gray-800/30
-                  transition-colors items-center">
-                  <span className={`font-bold
-                    ${i === 0
-                      ? 'text-yellow-400'
-                      : i === 1
-                      ? 'text-gray-300'
-                      : i === 2
-                      ? 'text-amber-600'
-                      : 'text-gray-500'}`}>
-                    #{i + 1}
+            {/* Horizontal scroll instead of squeezing 6 columns into a
+                narrow viewport — min-w keeps every column at a readable
+                width, the row underneath scrolls sideways on mobile. */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[720px]">
+                {/* Table header */}
+                <div className="grid grid-cols-6
+                  px-6 py-3 border-b border-gray-800
+                  text-xs text-gray-500
+                  uppercase tracking-wider">
+                  <span>Rank</span>
+                  <span className="col-span-2">
+                    Validator
                   </span>
-                  <span className="col-span-2
-                    font-mono text-sm text-gray-300">
-                    {v.address.slice(0, 8)}...
-                    {v.address.slice(-6)}
-                  </span>
-                  <span className={`font-mono
-                    text-sm
-                    ${v.uptimeBps > 9500
-                      ? 'text-green-400'
-                      : v.uptimeBps > 8000
-                      ? 'text-yellow-400'
-                      : 'text-red-400'}`}>
-                    {(v.uptimeBps / 100).toFixed(1)}%
-                  </span>
-                  <span className="text-sm">
-                    {v.commission}%
-                  </span>
-                  <span className="text-sm
-                    font-mono">
-                    {totalStake.toLocaleString()} RIZ
-                  </span>
+                  <span>Uptime</span>
+                  <span>Commission</span>
+                  <span>Total Stake</span>
                 </div>
-              )
-            })}
-            {validators.length === 0 && (
-              <div className="px-6 py-16 text-center text-gray-500 text-sm">
-                No active validators yet.
+
+                {/* Rows */}
+                {validators.map((v, i) => {
+                  const totalStake = parseFloat(
+                    v.selfStake.replace(/,/g, '')
+                  ) + parseFloat(
+                    v.delegatedStake.replace(/,/g, '')
+                  )
+                  return (
+                    <div key={v.address} id={v.address}
+                      className="grid grid-cols-6
+                      px-6 py-4 border-b border-gray-800
+                      last:border-0 hover:bg-gray-800/30
+                      transition-colors items-center">
+                      <span className={`font-bold
+                        ${i === 0
+                          ? 'text-yellow-400'
+                          : i === 1
+                          ? 'text-gray-300'
+                          : i === 2
+                          ? 'text-amber-600'
+                          : 'text-gray-500'}`}>
+                        #{i + 1}
+                      </span>
+                      <span className="col-span-2
+                        font-mono text-sm text-gray-300">
+                        {v.address.slice(0, 8)}...
+                        {v.address.slice(-6)}
+                      </span>
+                      <span className={`font-mono
+                        text-sm
+                        ${v.uptimeBps > 9500
+                          ? 'text-green-400'
+                          : v.uptimeBps > 8000
+                          ? 'text-yellow-400'
+                          : 'text-red-400'}`}>
+                        {(v.uptimeBps / 100).toFixed(1)}%
+                      </span>
+                      <span className="text-sm">
+                        {v.commission}%
+                      </span>
+                      <span className="text-sm
+                        font-mono">
+                        {totalStake.toLocaleString()} RIZ
+                      </span>
+                    </div>
+                  )
+                })}
+                {validators.length === 0 && (
+                  <div className="px-6 py-16 text-center text-gray-500 text-sm">
+                    No active validators yet.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

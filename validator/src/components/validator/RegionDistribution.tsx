@@ -46,7 +46,7 @@ export default function RegionDistribution() {
   const max = Math.max(1, ...regions.map(r => r.count))
 
   return (
-    <div className="bg-[#161029] border border-gray-800 rounded-2xl p-8">
+    <div className="bg-[#111118] border border-gray-800 rounded-2xl p-8">
       <div className="flex items-baseline justify-between mb-6">
         <h2 className="text-2xl font-bold">Validators by Region</h2>
         <span className="text-sm text-gray-500">{total} total</span>
@@ -67,7 +67,7 @@ export default function RegionDistribution() {
                 <span className="font-mono text-gray-500">{r.count}</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div className="h-full bg-violet-500 rounded-full"
+                <div className="h-full bg-yellow-400 rounded-full"
                   style={{ width: `${(r.count / max) * 100}%` }} />
               </div>
             </div>

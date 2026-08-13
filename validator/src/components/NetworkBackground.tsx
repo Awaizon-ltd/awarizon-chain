@@ -41,14 +41,14 @@ export default function NetworkBackground() {
         return (
           <line key={i}
             x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="#8b5cf6" strokeOpacity={0.18} strokeWidth={0.15}
+            stroke="#FFD700" strokeOpacity={0.15} strokeWidth={0.15}
           />
         )
       })}
 
       {NODES.map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r={0.4}
-          fill="#a29ac0" fillOpacity={0.4} />
+          fill="#9c9c9c" fillOpacity={0.4} />
       ))}
 
       {PULSE_INDICES.map(i => {

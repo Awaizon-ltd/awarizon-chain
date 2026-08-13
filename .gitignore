@@ -12,3 +12,14 @@ build/
 out/
 *.tsbuildinfo
 .github/workflows/
+stress-test/
+awarizon.js/
+sdk/
+app-sdk/
+developer/
+validator/
+rizart/
+dex/
+indexer/
+faucet/
+explorer/

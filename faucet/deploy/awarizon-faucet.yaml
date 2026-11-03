@@ -1,0 +1,15 @@
+http:
+  routers:
+    awarizon-faucet:
+      rule: "Host(`faucet.awarizon.com`)"
+      service: awarizon-faucet
+      entryPoints:
+        - https
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    awarizon-faucet:
+      loadBalancer:
+        servers:
+          - url: "http://31.97.58.198:3035"

@@ -1,0 +1,13 @@
+{
+  "name": "awarizon-chain",
+  "private": true,
+  "workspaces": [
+    "sdk",
+    "awarizon.js",
+    "dex",
+    "developer",
+    "nft-sdk",
+    "app-sdk",
+    "validator"
+  ]
+}

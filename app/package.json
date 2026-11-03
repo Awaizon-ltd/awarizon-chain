@@ -1,0 +1,43 @@
+{
+  "name": "awarizon",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@awarizon/core": "^2.0.0",
+    "@awarizon/react": "^2.0.0",
+    "@expo-google-fonts/roboto": "^0.4.3",
+    "@expo-google-fonts/roboto-mono": "^0.4.2",
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "expo": "~57.0.1",
+    "expo-clipboard": "^57.0.0",
+    "expo-dev-client": "~57.0.4",
+    "expo-font": "^57.0.0",
+    "expo-router": "^57.0.2",
+    "expo-secure-store": "^57.0.0",
+    "expo-sharing": "^57.0.1",
+    "expo-splash-screen": "^57.0.1",
+    "expo-status-bar": "~57.0.0",
+    "expo-updates": "~57.0.5",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-gesture-handler": "^3.0.2",
+    "react-native-qrcode-svg": "^6.3.21",
+    "react-native-reanimated": "^4.5.0",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "react-native-svg": "^15.15.5",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "private": true,
+  "packageManager": "pnpm@11.9.0+sha512.bd682d5d03fe525ef7c9fd6780c6884d1e756ac4c9c9fe00c538782824310dcf90e3ddc4f53835f06dfaebd5085e41855e0bcbb3b60de2ac5bbab89e5036f03b"
+}

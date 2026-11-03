@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light mode (default) ─────────────────────────────────────── */
+:root {
+  --awz-bg: #FAFAFA;
+  --awz-surface-rgb: 255 255 255;
+  --awz-border-rgb: 229 231 235;
+  --awz-text-rgb: 17 17 17;
+  --awz-muted-rgb: 107 114 128;
+  --awz-gold-rgb: 249 169 0;
+  --awz-gold-dim-rgb: 180 110 0;
+  --awz-red-rgb: 220 38 38;
+  --awz-yellow-rgb: 217 119 6;
+}
+
+/* ── Dark mode ────────────────────────────────────────────────── */
+html.dark {
+  --awz-bg: #0A0A0A;
+  --awz-surface-rgb: 17 17 17;
+  --awz-border-rgb: 31 31 31;
+  --awz-text-rgb: 232 232 232;
+  --awz-muted-rgb: 102 102 102;
+  --awz-gold-rgb: 249 169 0;
+  --awz-gold-dim-rgb: 180 110 0;
+  --awz-red-rgb: 255 68 68;
+  --awz-yellow-rgb: 255 204 0;
+}
+
+/* Root font-size drives every rem-based Tailwind text-* utility across the
+   whole app. 14px on mobile; 16px only once there's room for it at sm: and
+   up — previously this was a flat 19px on every screen size, inflating all
+   text on mobile too. */
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--awz-bg);
+  color: rgb(var(--awz-text-rgb));
+  font-family: 'JetBrains Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--awz-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--awz-muted-rgb) / 0.4);
+  border-radius: 4px;
+  border: 2px solid var(--awz-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--awz-muted-rgb) / 0.7);
+}
+
+::selection {
+  background: rgb(249 169 0 / 0.25);
+  color: rgb(249 169 0);
+}

@@ -1,0 +1,213 @@
+// Token denomination
+pub const PLANCK: u128 = 1;
+pub const RIZ: u128 = 1_000_000_000_000; // 10^12 planck units
+pub const MICRO_RIZ: u128 = 1_000_000;   // 10^6 planck units
+pub const MILLI_RIZ: u128 = 1_000_000_000; // 10^9 planck units
+
+// Consensus
+pub const GENESIS_VALIDATORS: u32 = 21;
+pub const TARGET_VALIDATORS: u32 = 21;
+pub const BLOCK_TIME_SECONDS: u32 = 3;
+pub const EPOCH_LENGTH_BLOCKS: u32 = 28_800;
+pub const BFT_FAULT_TOLERANCE: u32 = 17;
+pub const BFT_THRESHOLD: u32 = 34;
+pub const WALLET_EXPANSION_TRIGGER: u32 = 100_000;
+
+// Throughput
+pub const TOTAL_TPS: u32 = 10_000;
+pub const DISTRIBUTION_LANE_TPS: u32 = 6_000;
+pub const FINANCIAL_LANE_TPS: u32 = 2_500;
+pub const SYSTEM_LANE_TPS: u32 = 1_500;
+
+// Campaign rules
+pub const MIN_CAMPAIGN_DURATION_DAYS: u32 = 1;
+pub const MAX_CAMPAIGN_DURATION_DAYS: u32 = 90;
+pub const DEFAULT_CAMPAIGN_DURATION_DAYS: u32 = 30;
+pub const RENEWAL_GAS_DISCOUNT_BPS: u32 = 5_000; // 50%
+
+// Engagement rules
+pub const MIN_SESSION_SECONDS: u32 = 120;
+pub const MIN_INTERACTIONS: u32 = 5;
+pub const ENGAGEMENT_COOLDOWN_HOURS: u32 = 24;
+pub const MAX_ENGAGEMENT_EVENTS_PER_DAY: u32 = 10;
+
+// Storage economics
+pub const BASE_STORAGE_RATE_PLANCK_PER_BYTE_PER_EPOCH: u128 = 10;
+pub const MANIFEST_STORAGE_BYTES: u32 = 256;
+
+// Inbox pruning
+pub const INBOX_PRUNING_THRESHOLD_BLOCKS: u32 = 9_216_000;
+pub const INBOX_ARCHIVE_MONTHS: u32 = 12;
+
+// Geographic caps (basis points)
+pub const MAX_VALIDATORS_PER_REGION_BPS: u32 = 2_000; // 20%
+pub const MAX_VALIDATORS_PER_COUNTRY_BPS: u32 = 1_000; // 10%
+pub const MIN_VALIDATORS_PER_REGION: u32 = 3;  // floor: always allow at least 3 per region
+pub const MIN_VALIDATORS_PER_COUNTRY: u32 = 2; // floor: always allow at least 2 per country
+
+// Inbox State Reserve — bytes32 of "INBOXX"
+// Explicit array to stay compatible with Rust 1.82 (const IndexMut landed in 1.83)
+pub const INBOX_STATE_RESERVE: [u8; 32] = [
+    b'I', b'N', b'B', b'O', b'X', b'X', 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+];
+
+// Fee model weight tiers (ref_time units)
+// Multiply by WeightFeeNumerator/WeightFeeDenominator (1/8 planck/unit, see
+// runtime/src/configs/mod.rs) to get approximate planck cost. Note: these tiers
+// are currently reference values only — no pallet dispatchable annotates its
+// weight with them yet, so today's per-pallet fees are driven purely by each
+// call's real benchmarked weight (or zero, for pallets using WeightInfo = ()).
+// LIGHT        ≈ 0.00000125 RIZ  (1_250_000 planck)
+// STANDARD     ≈ 0.00000625 RIZ  (6_250_000 planck)
+// HEAVY        ≈ 0.0000125  RIZ  (12_500_000 planck)
+// VERY_HEAVY   ≈ 0.00003125 RIZ  (31_250_000 planck)
+// OCW          ≈ 0.000000625 RIZ (625_000 planck) — near-free, protocol-internal
+pub const WEIGHT_TIER_LIGHT: u64 = 10_000_000;
+pub const WEIGHT_TIER_STANDARD: u64 = 50_000_000;
+pub const WEIGHT_TIER_HEAVY: u64 = 100_000_000;
+pub const WEIGHT_TIER_VERY_HEAVY: u64 = 250_000_000;
+pub const WEIGHT_TIER_OCW: u64 = 5_000_000;
+
+// Fee targets (planck, 12 decimals). These describe the intended end-to-end
+// fee for each operation class; the runtime doesn't currently enforce a
+// per-pallet ceiling against them, but they document the goal that
+// runtime/src/configs/mod.rs's AwarizonWeightToFee/AwarizonLengthToFee
+// coefficients are tuned against.
+/// Standard transfer (balances.transfer_keep_alive) fee target: ~0.0001 RIZ
+pub const TRANSFER_FEE_TARGET: u128 = 100_000_000;
+/// Protocol operation (inbox, identity, campaigns, developer/validator ops) fee target range
+pub const PROTOCOL_FEE_TARGET_MIN: u128 = 200_000_000; // 0.0002 RIZ
+pub const PROTOCOL_FEE_TARGET_MAX: u128 = 500_000_000; // 0.0005 RIZ
+/// Contract call/instantiate fee target range (scales with actual execution weight)
+pub const CONTRACT_FEE_TARGET_MIN: u128 = 1_000_000_000; // 0.001 RIZ
+pub const CONTRACT_FEE_TARGET_MAX: u128 = 5_000_000_000; // 0.005 RIZ
+
+// Transaction type identifiers
+pub const TX_TYPE_FINANCIAL: u8 = 0x01;
+pub const TX_TYPE_DISTRIBUTION: u8 = 0x02;
+pub const TX_TYPE_SYSTEM: u8 = 0x03;
+
+// Targeting
+pub const MAX_TARGETING_DIMENSIONS: u32 = 6;
+pub const MAX_REGION_CODES_PER_CAMPAIGN: u32 = 64;
+pub const MAX_CATEGORY_HISTORY_ENTRIES: u32 = 8;
+pub const MAX_METADATA_URI_BYTES: u32 = 256;
+
+// Validator performance weights (basis points, sum = 10000)
+pub const PERF_WEIGHT_UPTIME_BPS: u32 = 5_000;     // 50%
+pub const PERF_WEIGHT_FINALITY_BPS: u32 = 2_500;   // 25%
+pub const PERF_WEIGHT_BLOCKS_BPS: u32 = 1_500;     // 15%
+pub const PERF_WEIGHT_SLASH_BPS: u32 = 1_000;      // 10%
+pub const PERF_MULTIPLIER_MIN_BPS: u32 = 5_000;    // 0.50x
+pub const PERF_MULTIPLIER_MAX_BPS: u32 = 12_500;   // 1.25x
+
+// Developer verification
+pub const DEVELOPER_MIN_TENURE_DAYS: u32 = 30;
+
+// Tokenomics
+pub const ENGAGEMENT_REWARD_POOL_BPS: u32 = 3_000; // 30% of total supply
+
+// Identity pallet constants
+pub const MIN_RIZ_NAME_LENGTH: u32 = 3;
+pub const MAX_RIZ_NAME_LENGTH: u32 = 32;
+pub const MAX_DISPLAY_NAME_LENGTH: u32 = 64;
+pub const MAX_BIO_LENGTH: u32 = 256;
+pub const MAX_URI_LENGTH: u32 = 256;
+pub const MAX_LINKED_ADDRESSES: u32 = 10;
+pub const MAX_REPUTATION_SCORE: u32 = 10_000;
+
+// Reputation score weights
+pub const REPUTATION_BASE_IDENTITY: u32 = 100;
+pub const REPUTATION_PER_LINKED_ADDRESS: u32 = 50;
+pub const REPUTATION_PER_ENGAGEMENT: u32 = 10;
+pub const REPUTATION_DEVELOPER_REGISTERED: u32 = 200;
+pub const REPUTATION_VALIDATOR_REGISTERED: u32 = 500;
+pub const REPUTATION_CREATOR_PROGRAM: u32 = 150;
+
+// ============================================================
+// STAKING ECONOMY — yield reserve, fee split, commission, slashing
+// ============================================================
+
+/// Daily emission from the 250M RIZ yield reserve.
+/// 15,000 RIZ/day gives ~45 year reserve duration.
+/// At testnet with 21 active validators:
+///   Base pool (60%): 9,000 RIZ/day = ~428 RIZ/validator/day
+///   Perf pool (20%): 3,000 RIZ/day = ~142 RIZ/validator/day (at 100% uptime)
+///   Stake pool (20%): 3,000 RIZ/day split by stake weight
+pub const YIELD_RESERVE_DAILY_EMISSION: u128 = 15_000_000_000_000_000u128; // 15,000 RIZ/day
+pub const YIELD_RESERVE_TOTAL: u128 = 250_000_000_000_000_000_000u128; // 250M RIZ
+
+/// Base reward pool percentage (of staking pool).
+/// Equal split among all active validators.
+pub const BASE_REWARD_PCT: u32 = 60;
+
+/// Performance bonus pool percentage (of staking pool).
+/// Proportional to validator uptime_bps score.
+pub const PERF_REWARD_PCT: u32 = 20;
+
+/// Stake-weighted pool percentage (of staking pool).
+/// Distributed by total stake, validator takes commission.
+pub const STAKE_REWARD_PCT: u32 = 20;
+
+/// Maximum active validators in testnet. Increase via governance for mainnet.
+pub const MAX_ACTIVE_VALIDATORS: u32 = 21;
+
+/// Per-epoch performance multiplier denominator.
+/// uptime_bps is in basis points (10_000 = 100%).
+pub const BPS_DENOMINATOR: u128 = 10_000;
+
+// Fee split (per epoch)
+pub const FEE_SPLIT_STAKING_PCT: u32 = 60;
+pub const FEE_SPLIT_INBOX_PCT: u32 = 20;
+pub const FEE_SPLIT_BURN_PCT: u32 = 20;
+
+// Commission range
+pub const MIN_COMMISSION: u32 = 0;
+pub const MAX_COMMISSION: u32 = 20;
+
+// Slashing (per mille)
+pub const SLASH_OFFLINE: u32 = 10; // 1%
+pub const SLASH_DOUBLE_SIGN: u32 = 50; // 5%
+
+// Slash fund split
+pub const SLASH_BURN_PCT: u32 = 50;
+pub const SLASH_INSURANCE_PCT: u32 = 50;
+
+// Offline threshold before slash
+pub const OFFLINE_SLASH_THRESHOLD: u32 = 100;
+
+// PalletIds — 8 bytes each
+pub const VALIDATOR_REWARDS_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/vldr"); // yield reserve
+pub const FEE_POOL_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/fees"); // epoch fee collection
+pub const INSURANCE_POOL_PALLET_ID: frame_support::PalletId =
+    frame_support::PalletId(*b"riz/insr"); // slash insurance
+
+// ============================================================
+// DEX — AMM pool fees, limits, and precision
+// ============================================================
+
+/// Fee for RIZ-paired pools (basis points). 0.25%.
+pub const FEE_RIZ_PAIR_BPS: u32 = 25;
+/// Fee for TOKEN/TOKEN pools (basis points). 0.30%.
+pub const FEE_TOKEN_PAIR_BPS: u32 = 30;
+/// Protocol burn fee (basis points), carved out of the swap fee above. 0.05%.
+pub const FEE_PROTOCOL_BURN_BPS: u32 = 5;
+/// Minimum liquidity permanently locked on a pool's first deposit (anti-manipulation floor).
+pub const MINIMUM_LIQUIDITY: u128 = 1_000u128;
+/// Maximum hops allowed in a router swap path.
+pub const MAX_ROUTER_HOPS: u32 = 3;
+/// LP token asset IDs are allocated starting from this offset.
+pub const LP_ASSET_ID_OFFSET: u32 = 1_000_000u32;
+/// Minimum combined liquidity required to create a new pool (~1 RIZ equivalent).
+pub const MIN_POOL_LIQUIDITY: u128 = 1_000_000_000_000u128;
+/// Maximum swap deadline window, in blocks (~10 minutes at 3s/block).
+pub const MAX_DEADLINE_BLOCKS: u32 = 200;
+/// TWAP price accumulator precision multiplier.
+pub const TWAP_PRECISION: u128 = 1_000_000_000_000u128;
+
+pub const DEX_PALLET_ID: frame_support::PalletId = frame_support::PalletId(*b"riz/dexx"); // pool accounts

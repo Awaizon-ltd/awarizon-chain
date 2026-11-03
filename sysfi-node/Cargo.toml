@@ -1,0 +1,96 @@
+[package]
+name = "sysfi-node"
+version = "0.1.0"
+description = "SysFi node: Ethereum/EVM-compatible sibling chain to Awarizon."
+license = "MIT-0"
+build = "build.rs"
+authors = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+publish = false
+
+[[bin]]
+name = "sysfi-node"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+clap = { version = "4.5.13", features = ["derive"] }
+futures = { version = "0.3.31" }
+hex-literal = { version = "0.4.1" }
+jsonrpsee = { version = "0.24.9", features = ["server", "macros"] }
+serde_json = { version = "1.0.132", features = ["arbitrary_precision"] }
+scale-codec = { package = "parity-scale-codec", version = "3.7.5" }
+# Pinned explicitly: fc-rpc pulls in `moka` -> `uuid`, and uuid >=1.21 requires
+# getrandom ^0.4, which needs edition2024 (rustc 1.85+) — a toolchain bump we
+# were told not to make. 1.20.0 is the last release on getrandom ^0.3.
+uuid = { version = "=1.20.0", default-features = false }
+# Same reasoning as uuid above: jobserver >=0.1.35 (pulled transitively by
+# `cc`, used by every native build script in this graph) added a getrandom
+# ^0.4 dependency. Pin to the last release without it.
+jobserver = { version = "=0.1.32" }
+
+sysfi-runtime = { path = "../sysfi-runtime" }
+# frame_system::WeightReclaim (in sysfi-runtime's TxExtension) needs this host
+# function at runtime — without it the node refuses to load the wasm blob.
+cumulus-primitives-proof-size-hostfunction = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+
+# Substrate — same git pin (branch = "stable2503") as sysfi-runtime, for the
+# same source-unification reason. See sysfi-runtime/Cargo.toml's comment.
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-chain-spec = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-network = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-network-sync = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+# default-features = false, features = []: avoids the "rocksdb" feature
+# (librocksdb-sys 0.11's vendored RocksDB 8.1.1 C++ source doesn't compile
+# under this environment's GCC 15) — same choice Awarizon's own node/Cargo.toml
+# already makes. Falls back to parity-db (pure Rust, no C++ toolchain needed).
+sc-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false, features = [] }
+sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-blockchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+
+# Frontier client crates
+fc-api = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-consensus = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
+fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
+fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false, features = ["aura", "txpool"] }
+fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-evm = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+
+[build-dependencies]
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }

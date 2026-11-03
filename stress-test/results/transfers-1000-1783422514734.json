@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-07-07T11:08:34.734Z",
+  "endpoint": "wss://rpc.awarizon.com",
+  "chain": "Awarizon Development",
+  "version": "0.1.0-7f71f074256",
+  "txCount": 1000,
+  "submitted": 1000,
+  "succeeded": 1000,
+  "failed": 0,
+  "errorRate": 0,
+  "durationMs": 243913,
+  "avgTPS": 4,
+  "peakTPS": 50,
+  "p50LatencyMs": 4814,
+  "p95LatencyMs": 7947,
+  "p99LatencyMs": 8555,
+  "avgFinalityMs": 11761,
+  "blocksUsed": 1,
+  "avgTxPerBlock": 1000,
+  "errors": {}
+}

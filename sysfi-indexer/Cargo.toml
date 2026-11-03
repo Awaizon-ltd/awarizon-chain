@@ -1,0 +1,50 @@
+[workspace]
+
+[package]
+name = "sysfi-indexer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sysfi-indexer"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[dependencies]
+# Pinned directly: some transitive dependency of alloy resolves to
+# getrandom 0.4.x by default, whose Cargo.toml requires Cargo's unstable
+# edition2024 support — unavailable on this machine's pinned rustc/cargo
+# 1.82.0 (the same toolchain constraint documented in
+# ../indexer/src/db/sqlx_compat.rs for a different crate). Pinning here
+# keeps the whole graph on the 0.2/0.3 lineage that already builds fine.
+getrandom = "=0.2.17"
+
+# EVM chain client — SysFi is a Frontier/EVM chain (blocks/txs/receipts over
+# eth_*), not Substrate extrinsics, so this uses alloy instead of the
+# subxt/subxt-core/subxt-rpcs/scale-value stack the Substrate-side
+# `awarizon-indexer` (../indexer) uses. Deliberately a separate crate/service
+# from that indexer — not an extension of it.
+alloy = { version = "=0.3.6", default-features = false, features = ["provider-http"] }
+
+anyhow = "1.0.103"
+axum = { version = "0.8", features = ["macros"] }
+dotenv = "0.15.0"
+futures = "0.3"
+governor = "0.6"
+once_cell = "1.20"
+prometheus = "0.13"
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+sqlx-core = { version = "0.8.6", default-features = false, features = ["_rt-tokio", "_tls-rustls-ring-webpki", "chrono", "bigdecimal", "json", "migrate"] }
+sqlx-postgres = { version = "0.8.6", default-features = false, features = ["chrono", "bigdecimal", "json", "migrate"] }
+thiserror = "2.0.18"
+tokio = { version = "1.52.3", features = ["full"] }
+tower = "0.5.3"
+tower-http = { version = "0.7.0", features = ["cors", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

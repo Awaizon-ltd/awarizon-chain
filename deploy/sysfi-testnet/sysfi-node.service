@@ -1,0 +1,29 @@
+[Unit]
+Description=SysFi Testnet Node
+After=network.target
+
+[Service]
+# Adjust if you deploy as a different user or path.
+User=sysfi
+Group=sysfi
+ExecStart=/opt/sysfi/sysfi-node \
+	--chain /opt/sysfi/sysfi-testnet.raw.json \
+	--base-path /var/lib/sysfi-node \
+	--node-key-file /opt/sysfi/node-key.p2p \
+	--name "sysfi-testnet-bootnode-1" \
+	--validator \
+	--rpc-port 9944 \
+	--rpc-cors all \
+	--rpc-methods safe \
+	--prometheus-external \
+	--telemetry-url "wss://telemetry.polkadot.io/submit/ 0"
+Restart=always
+RestartSec=10
+# RPC (9944) and Prometheus (9615) bind to localhost by default — only P2P
+# (30333) is meant to be reachable from the internet directly. The reverse
+# proxy (Caddyfile in this directory) fronts RPC with TLS; don't add
+# --rpc-external here unless you also lock it down at the firewall.
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

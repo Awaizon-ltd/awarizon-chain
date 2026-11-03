@@ -1,3 +1,87 @@
-*
-!README.md
-!.gitignore
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/
+bower_components/
+
+# Builds
+build/
+dist/
+out/
+.next/
+.nuxt/
+.expo/
+.expo-shared/
+.turbo/
+.vercel/
+.parcel-cache/
+.cache/
+storybook-static/
+
+# Rust / Substrate
+target/
+**/target/
+*.wasm
+!**/res/*.wasm
+*.rs.bk
+
+# Tests and coverage
+coverage/
+test-results/
+testresult/
+testresults/
+playwright-report/
+.nyc_output/
+*.lcov
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.p8
+*.mobileprovision
+
+# Chain data and keys
+chain-data/
+node-data/
+db/
+keystore/
+*.db
+*.sqlite
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Mobile native builds
+android/build/
+android/app/build/
+android/.gradle/
+ios/Pods/
+ios/build/
+*.apk
+*.aab
+*.ipa
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# Temp
+tmp/
+temp/
+*.tmp

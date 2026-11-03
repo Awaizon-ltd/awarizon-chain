@@ -1,0 +1,163 @@
+[package]
+name = "awarizon-node"
+description = "Awarizon L1 Blockchain Node — Purpose-built for native application distribution"
+version = "0.1.0"
+license = "Unlicense"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+build = "build.rs"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+clap = { features = ["derive"], workspace = true }
+# optional = true: at the current stable2503 commit, frame-benchmarking-cli
+# unconditionally pulls cumulus-client-parachain-inherent -> polkadot-overseer,
+# which fails to compile (a real upstream orchestra-macro bug on parachain/
+# relay-chain code this solochain never uses). Gating it behind the
+# `runtime-benchmarks` feature — the same pattern runtime/Cargo.toml already
+# uses for `frame-benchmarking` — means a normal build never touches that
+# broken dependency chain at all. Revisit once upstream fixes it.
+frame-benchmarking-cli.default-features = false
+frame-benchmarking-cli.optional = true
+frame-benchmarking-cli.workspace = true
+frame-metadata-hash-extension.default-features = true
+frame-metadata-hash-extension.workspace = true
+frame-system.default-features = true
+frame-system.workspace = true
+futures = { features = ["thread-pool"], workspace = true }
+jsonrpsee = { features = ["server"], workspace = true }
+pallet-transaction-payment-rpc.default-features = true
+pallet-transaction-payment-rpc.workspace = true
+pallet-transaction-payment.default-features = true
+pallet-transaction-payment.workspace = true
+sc-basic-authorship.default-features = true
+sc-basic-authorship.workspace = true
+sc-cli.default-features = false
+sc-cli.workspace = true
+sc-client-api.default-features = true
+sc-client-api.workspace = true
+sc-consensus-aura.default-features = true
+sc-consensus-aura.workspace = true
+sc-consensus-grandpa.default-features = true
+sc-consensus-grandpa.workspace = true
+sc-consensus.default-features = true
+sc-consensus.workspace = true
+sc-executor.default-features = true
+sc-executor.workspace = true
+sc-network.default-features = true
+sc-network.workspace = true
+sc-offchain.default-features = true
+sc-offchain.workspace = true
+# Was a direct `version = "0.50.0"` pin, bypassing workspace inheritance —
+# switched to .workspace = true so it tracks the same git/stable2503 source
+# as sc-client-api/sc-executor/etc. below (now git-pinned via the root
+# table), rather than silently pulling crates.io and diverging from them.
+# default-features = false, features = []: avoids the "rocksdb" feature
+# (librocksdb-sys's vendored C++ source doesn't compile under this
+# environment's GCC) — falls back to parity-db (pure Rust).
+sc-service = { workspace = true, default-features = false, features = [] }
+sc-telemetry.default-features = true
+sc-telemetry.workspace = true
+sc-transaction-pool-api.default-features = true
+sc-transaction-pool-api.workspace = true
+sc-transaction-pool.default-features = true
+sc-transaction-pool.workspace = true
+solochain-template-runtime.workspace = true
+sp-api.default-features = true
+sp-api.workspace = true
+sp-block-builder.default-features = true
+sp-block-builder.workspace = true
+sp-blockchain.default-features = true
+sp-blockchain.workspace = true
+sp-consensus-aura.default-features = true
+sp-consensus-aura.workspace = true
+sp-core.default-features = true
+sp-core.workspace = true
+sp-genesis-builder.default-features = true
+sp-genesis-builder.workspace = true
+sp-inherents.default-features = true
+sp-inherents.workspace = true
+sp-io.default-features = true
+sp-io.workspace = true
+sp-keyring.default-features = true
+sp-keyring.workspace = true
+sp-runtime.default-features = true
+sp-runtime.workspace = true
+sp-timestamp.default-features = true
+sp-timestamp.workspace = true
+substrate-frame-rpc-system.default-features = true
+substrate-frame-rpc-system.workspace = true
+serde_json.workspace = true
+serde = { version = "1", features = ["derive"] }
+hex = "0.4"
+codec.workspace = true
+codec.default-features = true
+pallet-awarizon-types.workspace = true
+pallet-awarizon-types.default-features = true
+pallet-awarizon-consensus.workspace = true
+pallet-awarizon-consensus.default-features = true
+pallet-awarizon-dex.workspace = true
+pallet-awarizon-dex.default-features = true
+
+# Pinned explicitly, same reasoning as sysfi-node/Cargo.toml: fc-rpc pulls in
+# `moka` -> `uuid`, and uuid >=1.21 needs getrandom ^0.4 (edition2024,
+# rustc 1.85+) — a toolchain bump this machine can't make. 1.20.0 is the
+# last release on getrandom ^0.3. jobserver >=0.1.35 (pulled transitively by
+# `cc`, used by every native build script in this graph) hits the same
+# getrandom bump; 0.1.32 is the last release without it.
+uuid = { version = "=1.20.0", default-features = false }
+jobserver = { version = "=0.1.32" }
+
+# frame_system::WeightReclaim (in the runtime's TxExtension) needs this host
+# function at runtime — without it the node refuses to load the wasm blob.
+cumulus-primitives-proof-size-hostfunction = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+
+# Not previously used by this node — needed for the new Frontier wiring
+# (chain-spec typing, the sync service frontier's mapping-sync worker hooks
+# into, RPC deps, and metrics registration for the frontier background
+# tasks). Git-pinned to the same branch as everything else touched by this
+# migration, for the same source-unification reason as runtime/Cargo.toml.
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-chain-spec = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-network-sync = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+sc-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503" }
+
+# Frontier client crates — same branch/versions as sysfi-node/Cargo.toml.
+fc-api = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-consensus = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-db = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
+fc-mapping-sync = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false }
+fc-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503", default-features = false, features = ["aura", "txpool"] }
+fc-rpc-core = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fc-storage = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-account = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-evm = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+fp-rpc = { git = "https://github.com/polkadot-evm/frontier", branch = "stable2503" }
+
+[build-dependencies]
+substrate-build-script-utils.default-features = true
+substrate-build-script-utils.workspace = true
+
+[features]
+default = ["std"]
+std = ["solochain-template-runtime/std"]
+runtime-benchmarks = [
+        "frame-benchmarking-cli/runtime-benchmarks",
+        "frame-system/runtime-benchmarks",
+        "pallet-transaction-payment/runtime-benchmarks",
+        "sc-service/runtime-benchmarks",
+        "solochain-template-runtime/runtime-benchmarks",
+        "sp-runtime/runtime-benchmarks",
+]
+try-runtime = [
+        "frame-system/try-runtime",
+        "pallet-transaction-payment/try-runtime",
+        "solochain-template-runtime/try-runtime",
+        "sp-runtime/try-runtime",
+]

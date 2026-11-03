@@ -1,0 +1,124 @@
+[workspace.package]
+license = "MIT-0"
+authors = ["Parity Technologies <admin@parity.io>"]
+homepage = "https://paritytech.github.io/polkadot-sdk/"
+repository = "https://github.com/paritytech/polkadot-sdk-solochain-template.git"
+edition = "2021"
+
+[workspace]
+members = [
+    "node",
+    "pallets/template",
+    "pallets/awarizon-types",
+    "pallets/awarizon-state",
+    "pallets/awarizon-targeting",
+    "pallets/awarizon-consensus",
+    "pallets/awarizon-identity",
+    "pallets/awarizon-links",
+    "pallets/awarizon-dex",
+    "runtime",
+    "sysfi-runtime",
+    "sysfi-node",
+]
+resolver = "2"
+
+[workspace.dependencies]
+solochain-template-runtime = { path = "./runtime", default-features = false }
+pallet-template = { path = "./pallets/template", default-features = false }
+pallet-awarizon-types = { path = "./pallets/awarizon-types", default-features = false }
+pallet-awarizon-state = { path = "./pallets/awarizon-state", default-features = false }
+pallet-awarizon-targeting = { path = "./pallets/awarizon-targeting", default-features = false }
+pallet-awarizon-consensus = { path = "./pallets/awarizon-consensus", default-features = false }
+pallet-awarizon-identity = { path = "./pallets/awarizon-identity", default-features = false }
+pallet-awarizon-links = { path = "./pallets/awarizon-links", default-features = false }
+pallet-awarizon-dex = { path = "./pallets/awarizon-dex", default-features = false }
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+clap = { version = "4.5.13" }
+# Every polkadot-sdk crate below is git-pinned to branch = "stable2503" —
+# the same branch sysfi-runtime/sysfi-node already use — rather than
+# crates.io versions. This is required, not optional: Awarizon's runtime now
+# also depends on Frontier (pallet-evm/pallet-ethereum/etc., added directly
+# in runtime/Cargo.toml), and Frontier's stable2503 branch requires its
+# matching polkadot-sdk branch. Since every pallets/awarizon-* crate and the
+# main node inherit frame-support/frame-system/etc. from THIS table via
+# `.workspace = true`, they must all resolve to one consistent source, or
+# the runtime crate's own dependency closure mixes two incompatible builds
+# of the same types. Unrelated to sysfi-runtime/sysfi-node, which never
+# reference this table at all (they declare their own git deps directly) —
+# this change has no effect on them.
+frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+futures = { version = "0.3.31" }
+jsonrpsee = { version = "0.24.3" }
+pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-network = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sc-transaction-pool-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-blockchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-genesis-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+codec = { version = "3.7.4", default-features = false, package = "parity-scale-codec" }
+frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-executive = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-system-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-sudo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-vesting = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+# Also used directly by pallets/awarizon-dex (as a real dependency, not just
+# the main runtime) — moved here so both reference the same source instead
+# of awarizon-dex keeping its own separate crates.io pin.
+pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-nfts = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-contracts = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+scale-info = { version = "2.11.6", default-features = false }
+serde_json = { version = "1.0.132", default-features = false }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-storage = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+sp-version = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2503", default-features = false }
+
+[patch.crates-io]
+substrate-bip39 = { path = "vendor/substrate-bip39" }
+
+[profile.release]
+opt-level = 3
+panic = "unwind"
+
+[profile.production]
+codegen-units = 1
+inherits = "release"
+lto = true
+

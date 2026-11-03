@@ -1,0 +1,28 @@
+# Caddy reverse proxy for SysFi testnet RPC — fronts the node's localhost-only
+# RPC port with TLS (Caddy gets a Let's Encrypt cert automatically) so
+# MetaMask/browsers can talk to wss://.../https://... instead of a bare
+# ws://.../http://... the node itself never needs --rpc-external.
+#
+# Replace rpc-endpoint.sysfi.network with your real domain before use —
+# Caddy needs a real DNS A record pointing at this VPS to issue a cert.
+
+rpc-endpoint.sysfi.network {
+	reverse_proxy 127.0.0.1:9944
+
+	# Basic abuse protection — tune to taste. Caddy's rate_limit needs the
+	# caddy-ratelimit plugin; if you haven't built that in, drop this block
+	# and rely on the firewall + a CDN/WAF in front instead.
+	# rate_limit {
+	# 	zone rpc_zone {
+	# 		key {remote_host}
+	# 		events 60
+	# 		window 1m
+	# 	}
+	# }
+
+	header {
+		Access-Control-Allow-Origin "*"
+		Access-Control-Allow-Methods "POST, GET, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type"
+	}
+}
